@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from ..db import BaseModel
-from ..foundation import Fundacion
+from ..foundation import Foundation
 
 
 @pytest.fixture(scope="session")
@@ -30,14 +30,14 @@ def session(engine, request):
 
 
 @pytest.fixture
-def fundacion_1_1_1(session: Session) -> Fundacion:
-    """Fixture que crea una instancia de la clase Fundacion.
+def foundation_1_1_1(session: Session) -> Foundation:
+    """Foundation instance.
 
     Returns:
-        Fundacion: Una instancia de la clase Fundacion.
+        Foundation: An instance of Foundation.
     """
-    fundacion = Fundacion(lx=1, ly=1, lz=1)
-    session.add(fundacion)
+    foundation = Foundation(lx=1, ly=1, lz=1, depth=1, name="my foundation", description="my description")
+    session.add(foundation)
     session.commit()
 
-    return fundacion
+    return foundation

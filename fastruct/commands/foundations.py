@@ -44,6 +44,7 @@ def add(
 @app.command()
 def get():
     """List all the foundations in the database."""
+    description_length = 29
     with session_scope() as session:
         foundations: list[Foundation] = session.query(Foundation).all()
         table = foundation_table()
@@ -51,7 +52,9 @@ def get():
             description = None
             if foundation.description is not None:
                 description = (
-                    foundation.description if len(foundation.description) <= 29 else f"{foundation.description[:29]}..."
+                    foundation.description
+                    if len(foundation.description) <= description_length
+                    else f"{foundation.description[:description_length]}..."
                 )
             table.add_row(
                 str(foundation.id),
