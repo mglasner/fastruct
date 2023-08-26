@@ -21,7 +21,7 @@ def add(
     name: Optional[str] = None,
     description: Optional[str] = None,
 ) -> None:
-    """Add a new foundation to the database.\n.
+    """Add a new foundation to the database.\n
 
     Args:\n
         lx (float): Width of the foundation in the x direction.\n
@@ -42,11 +42,19 @@ def add(
 
 
 @app.command()
-def get():
-    """List all the foundations in the database."""
+def get(id: Optional[int] = None):
+    """Get all foundations from database or the foundation with the provided id."""
     description_length = 29
     with session_scope() as session:
-        foundations: list[Foundation] = session.query(Foundation).all()
+        if id is None:
+            foundations: list[Foundation] = session.query(Foundation).all()
+        else:
+            foundation = session.query(Foundation).filter_by(id=id).first()
+            if foundation is None:
+                print("Foundation not found")
+                raise typer.Exit()
+            foundations = [foundation]
+
         table = foundation_table()
         for foundation in foundations:
             description = None
@@ -72,32 +80,6 @@ def get():
 
 
 @app.command()
-def get_by_id(foundation_id: int):
-    """Foundation details."""
-    with session_scope() as session:
-        foundation = session.query(Foundation).filter_by(id=foundation_id).first()
-        if foundation is None:
-            print("Foundation not found")
-            raise typer.Exit()
-
-        table = foundation_table()
-        table.add_row(
-            str(foundation.id),
-            foundation.name,
-            foundation.description,
-            str(foundation.lx),
-            str(foundation.ly),
-            str(foundation.lz),
-            str(foundation.depth),
-            f"{foundation.area():.3f}",
-            f"{foundation.volume():.3f}",
-            f"{foundation.weight():.3f}",
-        )
-
-    console.print(table)
-
-
-@app.command()
 def update(
     id: int,
     lx: float,
@@ -107,7 +89,7 @@ def update(
     name: Optional[str] = None,
     description: Optional[str] = None,
 ):
-    """Update a foundation in the database.\n.
+    """Update a foundation in the database.\n
 
     Args:\n
         id (int): The ID of the foundation to update.\n
@@ -142,3 +124,24 @@ def update(
             load.my = user_load.my + user_load.vx * foundation.lz + user_load.p * user_load.ex
 
         print(foundation)
+
+
+@app.command()
+def delete(foundation_id: int) -> None:
+    """Delete a foundation from the database.\n
+
+    This command deletes the foundation record with the specified ID from the database.\n
+
+    Args:\n
+        foundation_id (int): The ID of the foundation to delete.
+    """
+    with session_scope() as session:
+        foundation = session.query(Foundation).filter_by(id=foundation_id).first()
+        if foundation is None:
+            print("Foundation not found")
+            raise typer.Exit()
+
+        session.delete(foundation)
+        session.commit()
+
+        print(f"Foundation with ID {foundation_id} has been deleted.")
