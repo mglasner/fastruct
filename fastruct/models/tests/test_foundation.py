@@ -1,6 +1,5 @@
 """Test para el modelo de Foundation."""
 from random import randint
-from typing import Literal
 
 import pytest
 from sqlalchemy.exc import IntegrityError, StatementError

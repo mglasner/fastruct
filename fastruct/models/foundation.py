@@ -47,6 +47,18 @@ class Foundation(BaseModel):
         """
         return self.lx * self.ly * self.lz
 
+    def inertia(self) -> tuple[float, float]:
+        """Calculate the foundation's inertia moments.
+
+        This function calculates the inertia moments for the foundation along its x and y axes using the formulae:
+        Ix = (lx^3 * ly) / 12
+        Iy = (lx * ly^3) / 12
+
+        Returns:
+            tuple[float, float]: The inertia moments for the foundation along the x and y axes.
+        """
+        return self.lx**3 * self.ly / 12, self.lx * self.ly**3 / 12
+
     def weight(self, concrete_density: float = 2.5) -> float:
         """Calculate the foundation's weight.
 
@@ -59,7 +71,7 @@ class Foundation(BaseModel):
         """
         return self.volume() * concrete_density
 
-    def ground_weight(self, ground_density: float = 2.0) -> float:
+    def ground_weight(self, ground_density: float = 1.6) -> float:
         """Calculate the weight of the ground above the foundation.
 
         Args:
@@ -73,9 +85,9 @@ class Foundation(BaseModel):
         return self.area() * ground_height * ground_density
 
     def __str__(self) -> str:
-        """String representation of the foundation.
+        """Return a string representation of the foundation.
 
-        The representation includes the ID (with zeros as a prefix to form numbers up to 999),
+        The representation includes the ID (with leading zeros to form numbers up to 999),
         and the foundation's dimensions, always displayed with two decimal places.
         If the name is not None, it will be included in the representation.
 

@@ -1,6 +1,7 @@
 """Foundations Commands."""
 from typing import Optional
 
+import sqlalchemy as sa
 import typer
 from config_db import session_scope
 from models.foundation import Foundation
@@ -47,7 +48,7 @@ def get(id: Optional[int] = None):
     description_length = 29
     with session_scope() as session:
         if id is None:
-            foundations: list[Foundation] = session.query(Foundation).all()
+            foundations: list[Foundation] = session.query(Foundation).order_by(sa.desc("updated_at")).all()
         else:
             foundation = session.query(Foundation).filter_by(id=id).first()
             if foundation is None:
@@ -142,6 +143,5 @@ def delete(foundation_id: int) -> None:
             raise typer.Exit()
 
         session.delete(foundation)
-        session.commit()
 
         print(f"Foundation with ID {foundation_id} has been deleted.")
