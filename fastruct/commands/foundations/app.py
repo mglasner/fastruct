@@ -4,14 +4,11 @@ from typing import Optional
 import sqlalchemy as sa
 import typer
 from config_db import session_scope
-from foundations.analysis.bi_direction import bi_direction_analysis
-from foundations.analysis.one_direction import one_direction_analysis
-from foundations.tables import config_table, foundation_table
+from foundations.tables import analize_table, display_page, foundation_table, prepare_row
 from models.foundation import Foundation
 from rich.console import Console
-from rich.text import Text
 
-from .utils import data_by_method, get_max_value
+from .utils import get_max_value, stresses_and_percentajes_by_method
 
 app = typer.Typer()
 console = Console()
@@ -68,7 +65,7 @@ def get(id: Optional[int] = None):
         else:
             foundation = session.query(Foundation).filter_by(id=id).first()
             if foundation is None:
-                print("Foundation not found")
+                typer.secho("Foundation not found", fg=typer.colors.RED)
                 raise typer.Exit()
             foundations = [foundation]
 
@@ -133,7 +130,7 @@ def update(
     with session_scope() as session:
         foundation = session.query(Foundation).filter_by(id=id).first()
         if foundation is None:
-            print("Foundation not found")
+            typer.secho("Foundation not found", fg=typer.colors.RED)
             raise typer.Exit()
 
         foundation.lx = lx
@@ -153,8 +150,8 @@ def update(
 
         for user_load, load in zip(foundation.user_loads, foundation.loads, strict=True):
             load.p = user_load.p + foundation.weight() + foundation.ground_weight()
-            load.mx = user_load.mx + user_load.vy * foundation.lz + user_load.p * user_load.ey
-            load.my = user_load.my + user_load.vx * foundation.lz + user_load.p * user_load.ex
+            load.mx = user_load.mx + user_load.vy * foundation.lz + user_load.p * foundation.ey
+            load.my = user_load.my + user_load.vx * foundation.lz + user_load.p * foundation.ex
 
         print(foundation)
 
@@ -171,7 +168,7 @@ def delete(foundation_id: int) -> None:
     with session_scope() as session:
         foundation = session.query(Foundation).filter_by(id=foundation_id).first()
         if foundation is None:
-            print("Foundation not found")
+            typer.secho("Foundation not found", fg=typer.colors.RED)
             raise typer.Exit()
 
         session.delete(foundation)
@@ -186,6 +183,8 @@ def analyze_stresses_and_lifts(
     limit: Optional[float] = None,
     no_loads: bool = False,
     no_color: bool = False,
+    rows_per_page: Optional[int] = None,
+    order: Optional[str] = None,
 ) -> None:
     """Analyze maximum stresses and lifts.\n
 
@@ -198,49 +197,56 @@ def analyze_stresses_and_lifts(
     with session_scope() as session:
         foundation = session.query(Foundation).filter_by(id=foundation_id).first()
         if foundation is None:
-            print("Foundation not found")
+            typer.secho("Foundation not found", fg=typer.colors.RED)
             raise typer.Exit()
 
-        table = config_table(str(foundation), method, no_loads)  # type: ignore
-        bi_stresses, bi_percentajes = bi_direction_analysis(foundation)
-        one_stresses, one_percentajes = one_direction_analysis(foundation)
-        all_stresses = [(s1, s2, s3) for s1, (s2, s3) in zip(bi_stresses, one_stresses, strict=True)]
-        all_percentajes = [(p1, p2, p3) for p1, (p2, p3) in zip(bi_percentajes, one_percentajes, strict=True)]
-
-        if method == "bi-direction":
-            stresses, percentajes = bi_stresses, bi_percentajes
-
-        elif method == "one-direction":
-            stresses, percentajes = one_stresses, one_percentajes
-
-        elif method == "compare":
-            stresses, percentajes = all_stresses, all_percentajes
-        else:
-            print(f"Unkwnown method: {method}")
-            raise typer.Exit()
-
+        stresses, percentajes = stresses_and_percentajes_by_method(foundation, method)  # type: ignore
         max_stress = get_max_value(stresses)
-        for i, (load, stress, percentaje) in enumerate(
-            zip(foundation.loads, stresses, percentajes, strict=True), start=1
-        ):
-            row = [
-                Text(f"{i:02}", style="bold"),
-                Text(f"{load.user_load.name}", style="bold") if load.user_load.name is not None else None,
-            ]
 
-            if not no_loads:
-                row.extend(
-                    [
-                        Text(f"{load.p :.1f}", style="black"),
-                        Text(f"{load.vx:.1f}", style="black"),
-                        Text(f"{load.vy:.1f}", style="black"),
-                        Text(f"{load.mx:.1f}", style="black"),
-                        Text(f"{load.my:.1f}", style="black"),
-                    ]
-                )
+        loads = foundation.loads
+        if order is not None:
+            if order not in ("stress", "percentaje"):
+                typer.secho("Order must be 'stress' or 'percentaje'", fg=typer.colors.RED)
+                raise typer.Exit()
 
-            extra_data = data_by_method(stress, percentaje, method, max_stress, limit, no_color)  # type: ignore
-            row.extend(extra_data)
-            table.add_row(*row)
+            data = list(zip(foundation.loads, stresses, percentajes, strict=True))
+            if order == "stress":
+                # Order desc by 'stress'
+                data.sort(key=lambda x: (x[1] is None, x[1]), reverse=True)
+            else:
+                # Order asc by 'percentaje'
+                data.sort(key=lambda x: x[2])
 
-        console.print(table)
+            loads, stresses, percentajes = zip(*data, strict=True)
+
+        all_rows = []
+        for i, (load, stress, percentaje) in enumerate(zip(loads, stresses, percentajes, strict=True), start=1):
+            row = prepare_row(i, load, stress, percentaje, method, max_stress, limit, no_loads, no_color)  # type: ignore
+            all_rows.append(row)
+
+        table = analize_table(str(foundation), method, no_loads)  # type: ignore
+        if rows_per_page is None:
+            rows_per_page = 20
+
+        num_pages = len(all_rows) // rows_per_page + (1 if len(all_rows) % rows_per_page else 0)
+        for page in range(num_pages):
+            start_idx = page * rows_per_page
+            end_idx = start_idx + rows_per_page
+            table = analize_table(str(foundation), method, no_loads)  # type: ignore
+            display_page(start_idx, end_idx, all_rows, table)
+            if page < num_pages - 1:
+                input(f"Page {page+1}/{num_pages}, press Enter to watch next results... \n")
+
+
+@app.command()
+def flexural_design(foundation_id: int) -> None:
+    """Flexural design of foundation."""
+    from foundations.design import get_ultimate_moments
+
+    with session_scope() as session:
+        foundation = session.query(Foundation).filter_by(id=foundation_id).first()
+        if foundation is None:
+            typer.secho("Foundation not found", fg=typer.colors.RED)
+            raise typer.Exit()
+
+        print(get_ultimate_moments(foundation))

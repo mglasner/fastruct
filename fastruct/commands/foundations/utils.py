@@ -2,96 +2,10 @@
 from collections.abc import Iterable
 from typing import Literal
 
-from rich.text import Text
-
-PERCENTAJE_0 = 0
-PERCENTAJE_80 = 80
-PERCENTAJE_100 = 100
-
-MAX_STRESS_COLOR = "red"
-LIMIT_STRESS_COLOR = "yellow"
-MIN_PERCENTAJE_COLOR = "blue"
-
-
-def data_by_method(
-    stress: list[float],
-    percentaje: list[float],
-    method: Literal["bi-directional", "one-direction", "compare"],
-    max_stress: float,
-    limit_stress: float | None = None,
-    no_color: bool = False,
-) -> list[str | Text]:
-    """Generate row data by analysis method."""
-    if limit_stress is None:
-        limit_stress = max_stress
-
-    if no_color:
-        max_stress_color = ""
-        limit_stress_color = ""
-        min_percentaje_color = ""
-
-    else:
-        max_stress_color = "red"
-        limit_stress_color = "yellow"
-        min_percentaje_color = "blue"
-
-    def format_stress(s: float) -> str | Text:
-        if s == max_stress:
-            return Text(f"{s:.2f}", style=f"{max_stress_color} italic bold")
-        elif limit_stress <= s < max_stress:
-            return Text(f"{s:.2f}", style=f"{limit_stress_color} italic")
-        elif s < limit_stress:
-            return Text(f"{s:.2f}", style="italic")
-        else:
-            return f"{s:.2f}"
-
-    def format_percentaje(p: float) -> str | Text:  # noqa: PLR0911
-        if p == PERCENTAJE_0:
-            return Text(f"{p:.0f}%", style=f"{min_percentaje_color} bold")
-        elif p < PERCENTAJE_80:
-            return Text(f"{p:.0f}%", style="bold")
-        elif p <= PERCENTAJE_100:
-            return Text(f"{p:.0f}%", style="")
-        else:
-            return f"{p:.2f}"
-
-    data = []
-
-    if method == "bi-direction":
-        data.extend(
-            [format_stress(stress) if stress is not None else "∞", format_percentaje(percentaje)]  # type: ignore
-        )
-    elif method == "one-direction":
-        stress_x, stress_y = stress
-        percentaje_x, percentaje_y = percentaje
-        data.extend(
-            [
-                format_stress(stress_x) if stress_x is not None else "∞",
-                format_percentaje(percentaje_x),
-                format_stress(stress_y) if stress_y is not None else "∞",
-                format_percentaje(percentaje_y),
-            ]
-        )
-    elif method == "compare":
-        bi_stress, stress_x, stress_y = stress
-        bi_percentaje, percentaje_x, percentaje_y = percentaje
-        data.extend(
-            [
-                format_stress(bi_stress) if bi_stress is not None else "∞",
-                format_percentaje(bi_percentaje),
-                format_stress(stress_x) if stress_x is not None else "∞",
-                format_percentaje(percentaje_x),
-                format_stress(stress_y) if stress_y is not None else "∞",
-                format_percentaje(percentaje_y),
-            ]
-        )
-
-    return data
-
-
-def format_stress(stress: float, max_stress: float) -> str | Text:
-    """Format to stress cell."""
-    return Text(f"{stress:.2f}", style="red") if stress == max_stress else f"{stress:.2f}"
+import typer
+from foundations.analysis.bi_direction import bi_direction_analysis
+from foundations.analysis.one_direction import one_direction_analysis
+from models.foundation import Foundation
 
 
 def get_max_value(data: list[float | None] | list[tuple[float | None, ...]]) -> float | None:
@@ -115,3 +29,32 @@ def get_max_value(data: list[float | None] | list[tuple[float | None, ...]]) -> 
         flat_data = [value for value in data if value is not None]
 
     return max(flat_data, default=None)  # type: ignore
+
+
+def stresses_and_percentajes_by_method(
+    foundation: Foundation, method: Literal["bi-directional", "one-direction", "compare"]
+) -> tuple[
+    list[float | None]
+    | list[tuple[float | None, float | None]]
+    | list[tuple[float | None, float | None, float | None]],
+    list[float] | list[tuple[float, float]] | list[tuple[float, float, float]],
+]:
+    """Utility funtion for getting stresses and percentajes by method."""
+    bi_stresses, bi_percentajes = bi_direction_analysis(foundation)
+    one_stresses, one_percentajes = one_direction_analysis(foundation)
+    all_stresses = [(s1, s2, s3) for s1, (s2, s3) in zip(bi_stresses, one_stresses, strict=True)]
+    all_percentajes = [(p1, p2, p3) for p1, (p2, p3) in zip(bi_percentajes, one_percentajes, strict=True)]
+
+    if method == "bi-direction":
+        stresses, percentajes = bi_stresses, bi_percentajes
+
+    elif method == "one-direction":
+        stresses, percentajes = one_stresses, one_percentajes
+
+    elif method == "compare":
+        stresses, percentajes = all_stresses, all_percentajes
+    else:
+        print(f"Unkwnown method: {method}")
+        raise typer.Exit()
+
+    return stresses, percentajes
