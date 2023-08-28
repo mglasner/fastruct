@@ -17,6 +17,8 @@ class Foundation(BaseModel):
     ly: so.Mapped[float] = so.mapped_column(sa.Float)
     lz: so.Mapped[float] = so.mapped_column(sa.Float)
     depth: so.Mapped[float] = so.mapped_column(sa.Float)
+    ex: so.Mapped[float] = so.mapped_column(sa.Float)
+    ey: so.Mapped[float] = so.mapped_column(sa.Float)
     col_x: so.Mapped[float] = so.mapped_column(sa.Float)
     col_y: so.Mapped[float] = so.mapped_column(sa.Float)
 
@@ -29,6 +31,8 @@ class Foundation(BaseModel):
         sa.CheckConstraint("lx > 0", name="check_lx_positive"),
         sa.CheckConstraint("ly > 0", name="check_ly_positive"),
         sa.CheckConstraint("lz > 0", name="check_lz_positive"),
+        sa.CheckConstraint("col_x >= 0", name="check_col_x_positive"),
+        sa.CheckConstraint("col_y >= 0", name="check_col_y_positive"),
         sa.CheckConstraint("depth >= 0", name="check_depth_positive"),
         sa.CheckConstraint("depth >= lz", name="check_depth_greater_lz"),
     )

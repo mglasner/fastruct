@@ -28,7 +28,7 @@ class Load(BaseModel):
         return [self.p, self.vx, self.vy, self.mx, self.my]
 
     def __str__(self) -> str:
-        """String representation of load.
+        """Return a string representation of the foundation.
 
         Returns:
             str: The string representation of load.

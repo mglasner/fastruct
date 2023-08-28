@@ -17,8 +17,6 @@ class UserLoad(BaseModel):
     vy: so.Mapped[float] = so.mapped_column(sa.Float)
     mx: so.Mapped[float] = so.mapped_column(sa.Float)
     my: so.Mapped[float] = so.mapped_column(sa.Float)
-    ex: so.Mapped[float] = so.mapped_column(sa.Float, default=0)
-    ey: so.Mapped[float] = so.mapped_column(sa.Float, default=0)
 
     foundation_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("foundations.id", ondelete="CASCADE"))
     foundation: so.Mapped["Foundation"] = so.relationship(back_populates="user_loads")  # noqa: F821
@@ -29,7 +27,7 @@ class UserLoad(BaseModel):
         return [self.p, self.vx, self.vy, self.mx, self.my]
 
     def __str__(self) -> str:
-        """String representation of load.
+        """Representation of load as string.
 
         Returns:
             str: The string representation of load.
