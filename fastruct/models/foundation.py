@@ -17,6 +17,8 @@ class Foundation(BaseModel):
     ly: so.Mapped[float] = so.mapped_column(sa.Float)
     lz: so.Mapped[float] = so.mapped_column(sa.Float)
     depth: so.Mapped[float] = so.mapped_column(sa.Float)
+    col_x: so.Mapped[float] = so.mapped_column(sa.Float)
+    col_y: so.Mapped[float] = so.mapped_column(sa.Float)
 
     loads: so.Mapped[list["Load"]] = so.relationship(cascade="all, delete", back_populates="foundation")  # noqa: F821
     user_loads: so.Mapped[list["UserLoad"]] = so.relationship(  # noqa: F821
@@ -38,6 +40,14 @@ class Foundation(BaseModel):
             float: The area of the foundation.
         """
         return self.lx * self.ly
+
+    def column_area(self) -> float:
+        """Calculate the column's area.
+
+        Returns:
+            float: The area of the columns over fundation.
+        """
+        return self.col_x * self.col_y
 
     def volume(self) -> float:
         """Calculate the foundation's volume.
@@ -81,8 +91,8 @@ class Foundation(BaseModel):
             float: The weight of the ground in tons, based on the calculated area in square meters, ground height,
                 and the provided ground density.
         """
-        ground_height = self.lz if self.depth is None else (self.depth - self.lz)
-        return self.area() * ground_height * ground_density
+        ground_height = self.depth - self.lz
+        return (self.area() - self.column_area()) * ground_height * ground_density
 
     def __str__(self) -> str:
         """Return a string representation of the foundation.

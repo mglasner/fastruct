@@ -43,6 +43,7 @@ def foundation_table() -> Table:
         "Ly(m)",
         "Lz(m)",
         "Depth(m)",
+        "Column",
         "Area(m²)",
         "Vol.(m³)",
         "Weight (t)",
