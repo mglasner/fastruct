@@ -1,5 +1,5 @@
 """Foundations Commands."""
-from typing import Literal, Optional
+from typing import Optional
 
 import sqlalchemy as sa
 import typer
@@ -10,6 +10,8 @@ from foundations.tables import config_table, foundation_table
 from models.foundation import Foundation
 from rich.console import Console
 from rich.text import Text
+
+from .utils import data_by_method, get_max_value
 
 app = typer.Typer()
 console = Console()
@@ -23,8 +25,8 @@ def add(
     depth: Optional[float] = None,
     ex: Optional[float] = 0,
     ey: Optional[float] = 0,
-    col_x: Optional[float] = 0,
-    col_y: Optional[float] = 0,
+    colx: Optional[float] = 0,
+    coly: Optional[float] = 0,
     name: Optional[str] = None,
     description: Optional[str] = None,
 ) -> None:
@@ -39,8 +41,8 @@ def add(
                                      foundation. Defaults to 0.\n
         ey (float | None, optional): Eccentricity in the y direction with respect to the center of gravity of the\n
                                      foundation. Defaults to 0.\n
-        col_x (float | None): Width of the column over the foundation in x direction.\n
-        col_y (float | None): Width of the column over the foundation in y direction.\n
+        colx (float | None): Width of the column over the foundation in x direction.\n
+        coly (float | None): Width of the column over the foundation in y direction.\n
         name (str | None): Optional name for the foundation. Defaults to None. Max characters 32.\n
         description (str | None): Optional description for the foundation. Defaults to None. Max characters 128.\n
     """
@@ -49,7 +51,7 @@ def add(
 
     with session_scope() as session:
         fundacion = Foundation(
-            lx=lx, ly=ly, lz=lz, depth=depth, ex=ex, ey=ey, col_x=col_x, col_y=col_y, name=name, description=description
+            lx=lx, ly=ly, lz=lz, depth=depth, ex=ex, ey=ey, col_x=colx, col_y=coly, name=name, description=description
         )
         session.add(fundacion)
         session.flush()
@@ -106,8 +108,8 @@ def update(
     depth: float,
     ex: float,
     ey: float,
-    col_x: float,
-    col_y: float,
+    colx: float,
+    coly: float,
     name: Optional[str] = None,
     description: Optional[str] = None,
 ):
@@ -123,8 +125,8 @@ def update(
                     foundation. Defaults to 0.\n
         ey (float): Eccentricity in the y direction with respect to the center of gravity of the\n
                     foundation. Defaults to 0.\n
-        col_x (float): Width of the column over the foundation in x direction.\n
-        col_y (float): Width of the column over the foundation in y direction.\n
+        colx (float): Width of the column over the foundation in x direction.\n
+        coly (float): Width of the column over the foundation in y direction.\n
         name (str | None): Optional name for the foundation. Defaults to None. Max characters 32.\n
         description (str | None): Optional description for the foundation. Defaults to None. Max characters 128.\n
     """
@@ -140,8 +142,8 @@ def update(
         foundation.depth = depth
         foundation.ex = ex
         foundation.ey = ey
-        foundation.col_x = col_x
-        foundation.col_y = col_y
+        foundation.col_x = colx
+        foundation.col_y = coly
         if name is not None:
             foundation.name = name
         if description is not None:
@@ -179,7 +181,11 @@ def delete(foundation_id: int) -> None:
 
 @app.command(name="analize")
 def analyze_stresses_and_lifts(
-    foundation_id: int, method: Optional[str] = "bi-direction", no_loads: bool = False
+    foundation_id: int,
+    method: Optional[str] = "bi-direction",
+    limit: Optional[float] = None,
+    no_loads: bool = False,
+    no_color: bool = False,
 ) -> None:
     """Analyze maximum stresses and lifts.\n
 
@@ -203,133 +209,38 @@ def analyze_stresses_and_lifts(
 
         if method == "bi-direction":
             stresses, percentajes = bi_stresses, bi_percentajes
+
         elif method == "one-direction":
             stresses, percentajes = one_stresses, one_percentajes
+
         elif method == "compare":
             stresses, percentajes = all_stresses, all_percentajes
         else:
             print(f"Unkwnown method: {method}")
             raise typer.Exit()
 
+        max_stress = get_max_value(stresses)
         for i, (load, stress, percentaje) in enumerate(
             zip(foundation.loads, stresses, percentajes, strict=True), start=1
         ):
             row = [
-                f"{i:02}",
-                f"{load.user_load.name}" if load.user_load.name is not None else None,
+                Text(f"{i:02}", style="bold"),
+                Text(f"{load.user_load.name}", style="bold") if load.user_load.name is not None else None,
             ]
 
             if not no_loads:
                 row.extend(
                     [
-                        f"{load.p :.1f}",
-                        f"{load.vx:.1f}",
-                        f"{load.vy:.1f}",
-                        f"{load.mx:.1f}",
-                        f"{load.my:.1f}",
+                        Text(f"{load.p :.1f}", style="black"),
+                        Text(f"{load.vx:.1f}", style="black"),
+                        Text(f"{load.vy:.1f}", style="black"),
+                        Text(f"{load.mx:.1f}", style="black"),
+                        Text(f"{load.my:.1f}", style="black"),
                     ]
                 )
 
-            extra_data = data_by_method(stress, percentaje, method)  # type: ignore
+            extra_data = data_by_method(stress, percentaje, method, max_stress, limit, no_color)  # type: ignore
             row.extend(extra_data)
             table.add_row(*row)
 
         console.print(table)
-
-
-def data_by_method(
-    stress: list[float], percentaje: list[float], method: Literal["bi-directional", "one-direction", "compare"]
-) -> list[str]:
-    """Generate row data by analysis method."""
-    data = []
-    if method == "bi-direction":
-        data.extend(
-            [
-                f"{stress:.2f}" if stress is not None else "∞",
-                f"{percentaje:.2f}",
-            ]
-        )
-    elif method == "one-direction":
-        stress_x, stress_y = stress
-        percentaje_x, percentaje_y = percentaje
-        data.extend(
-            [
-                f"{stress_x:.2f}" if stress_x is not None else "∞",
-                f"{percentaje_x:.2f}",
-                f"{stress_y:.2f}" if stress_y is not None else "∞",
-                f"{percentaje_y:.2f}",
-            ]
-        )
-    elif method == "compare":
-        bi_stress, stress_x, stress_y = stress
-        bi_percentaje, percentaje_x, percentaje_y = percentaje
-        data.extend(
-            [
-                f"{bi_stress:.2f}" if bi_stress is not None else "∞",
-                f"{bi_percentaje:.2f}",
-                f"{stress_x:.2f}" if stress_x is not None else "∞",
-                f"{percentaje_x:.2f}",
-                f"{stress_y:.2f}" if stress_y is not None else "∞",
-                f"{percentaje_y:.2f}",
-            ]
-        )
-
-    return data
-
-    # liftings = lifting_percentaje(foundation)
-    # stresses = get_stress(foundation)
-    # stress_max_total_x = max(stress[0] if stress[0] is not None else -1 for stress in stresses)
-    # stress_max_total_y = max(stress[2] if stress[2] is not None else -1 for stress in stresses)
-
-    # percentaje_min_total_x = min(percentaje[0] for percentaje in liftings)
-    # percentaje_min_total_y = min(percentaje[1] for percentaje in liftings)
-    # percentaje_100 = 100
-
-    # for i, (load, (stress_max_x, _, stress_max_y, _), (percentaje_x, percentaje_y)) in enumerate(
-    #     zip(foundation.loads, stresses, liftings, strict=True), start=1
-    # ):
-    #     sigma_x = (
-    #         (f"{stress_max_x:.2f}" if stress_max_x is not None else "∞")
-    #         if stress_max_x != stress_max_total_x
-    #         else Text(f"{stress_max_x:.2f}", style="red")
-    #     )
-
-    #     sigma_y = (
-    #         (f"{stress_max_y:.2f}" if stress_max_y is not None else "∞")
-    #         if stress_max_y != stress_max_total_y
-    #         else Text(f"{stress_max_y:.2f}", style="red")
-    #     )
-
-    #     percentaje_x = (  # noqa: PLW2901
-    #         Text(f"{percentaje_x:.2f}", style="blue")
-    #         if percentaje_x == percentaje_min_total_x and percentaje_min_total_x != percentaje_100
-    #         else f"{percentaje_x:.2f}"
-    #     )
-
-    #     percentaje_y = (  # noqa: PLW2901
-    #         Text(f"{percentaje_y:.2f}", style="blue")
-    #         if percentaje_y == percentaje_min_total_y and percentaje_min_total_y != percentaje_100
-    #         else f"{percentaje_y:.2f}"
-    #     )
-
-    #     bi_directional_max_stress, bi_directional_percentaje = get_bi_directional_percentaje_and_stress(
-    #         foundation, load
-    #     )
-
-    #     row = [
-    #         f"{i:02}",
-    #         f"{load.user_load.name}",
-    #         f"{load.p :.1f}",
-    #         f"{load.vx:.1f}",
-    #         f"{load.vy:.1f}",
-    #         f"{load.mx:.1f}",
-    #         f"{load.my:.1f}",
-    #         # sigma_x,
-    #         # percentaje_x,
-    #         # sigma_y,
-    #         # percentaje_y,
-    #         f"{bi_directional_max_stress:.2f}" if bi_directional_max_stress is not None else "∞",
-    #         f"{bi_directional_percentaje:.2f}",
-    #     ]
-
-    #     table.add_row(*row)

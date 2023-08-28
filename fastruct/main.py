@@ -1,7 +1,7 @@
 """Entry point de la aplicación."""
 import typer
-from commands.foundations import app as foundations_app
-from commands.loads import app as loads_app
+from commands.foundations.app import app as foundations_app
+from commands.loads.app import app as loads_app
 from config_db import config_database
 
 app = typer.Typer()

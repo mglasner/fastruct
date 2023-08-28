@@ -11,14 +11,14 @@ def config_table(title: str, method: Literal["bi-directional", "one-direction", 
     if not no_loads:
         columns.extend(["P", "Vx", "Vy", "Mx", "My"])
 
-    if method == "bi-directional":
+    if method == "bi-direction":
         columns.extend(["σ (ton/m²)", "%"])
 
     elif method == "one-direction":
         columns.extend(["σx max", r"%x", "σy max", r"%y"])
 
     elif method == "compare":
-        columns.extend(["σx max", r"%x", "σy max", r"%y", "σ (ton/m²)", "%"])
+        columns.extend(["σ (ton/m²)", "%", "σx max", r"%x", "σy max", r"%y"])
 
     table = Table(*columns)
     table.title = Text(title, style="black on white bold")
@@ -43,6 +43,8 @@ def foundation_table() -> Table:
         "Ly(m)",
         "Lz(m)",
         "Depth(m)",
+        "ex",
+        "ey",
         "Column",
         "Area(m²)",
         "Vol.(m³)",
