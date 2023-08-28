@@ -20,6 +20,8 @@ def add(
     ly: float,
     lz: float,
     depth: Optional[float] = None,
+    ex: Optional[float] = 0,
+    ey: Optional[float] = 0,
     col_x: Optional[float] = 0,
     col_y: Optional[float] = 0,
     name: Optional[str] = None,
@@ -32,6 +34,10 @@ def add(
         ly (float): Width of the foundation in the y direction.\n
         lz (float): Height of the foundation in the z direction.\n
         depth (float | None): Depth of the foundation from the ground level to the seal of the foundation.\n
+        ex (float | None, optional): Eccentricity in the x direction with respect to the center of gravity of the\n
+                                     foundation. Defaults to 0.\n
+        ey (float | None, optional): Eccentricity in the y direction with respect to the center of gravity of the\n
+                                     foundation. Defaults to 0.\n
         col_x (float | None): Width of the column over the foundation in x direction.\n
         col_y (float | None): Width of the column over the foundation in y direction.\n
         name (str | None): Optional name for the foundation. Defaults to None. Max characters 32.\n
@@ -42,7 +48,7 @@ def add(
 
     with session_scope() as session:
         fundacion = Foundation(
-            lx=lx, ly=ly, lz=lz, depth=depth, col_x=col_x, col_y=col_y, name=name, description=description
+            lx=lx, ly=ly, lz=lz, depth=depth, ex=ex, ey=ey, col_x=col_x, col_y=col_y, name=name, description=description
         )
         session.add(fundacion)
         session.flush()
@@ -80,6 +86,8 @@ def get(id: Optional[int] = None):
                 str(foundation.ly),
                 str(foundation.lz),
                 str(foundation.depth),
+                str(foundation.ex),
+                str(foundation.ey),
                 f"{foundation.col_x:.1f}x{foundation.col_y:.1f}",
                 f"{foundation.area():.3f}",
                 f"{foundation.volume():.3f}",
@@ -95,6 +103,8 @@ def update(
     ly: float,
     lz: float,
     depth: float,
+    ex: float,
+    ey: float,
     col_x: float,
     col_y: float,
     name: Optional[str] = None,
@@ -108,6 +118,10 @@ def update(
         ly (float): Width of the foundation in the y direction.\n
         lz (float): Height of the foundation in the z direction.\n
         depth (float): Depth of the foundation from the ground level to the seal of the foundation.\n
+        ex (float): Eccentricity in the x direction with respect to the center of gravity of the\n
+                    foundation. Defaults to 0.\n
+        ey (float): Eccentricity in the y direction with respect to the center of gravity of the\n
+                    foundation. Defaults to 0.\n
         col_x (float): Width of the column over the foundation in x direction.\n
         col_y (float): Width of the column over the foundation in y direction.\n
         name (str | None): Optional name for the foundation. Defaults to None. Max characters 32.\n
@@ -123,6 +137,8 @@ def update(
         foundation.ly = ly
         foundation.lz = lz
         foundation.depth = depth
+        foundation.ex = ex
+        foundation.ey = ey
         foundation.col_x = col_x
         foundation.col_y = col_y
         if name is not None:
