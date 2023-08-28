@@ -1,6 +1,6 @@
-"""Analysis foundations functions."""
+"""Foundations analysis module."""
 from collections import OrderedDict
-from math import isclose, sqrt
+from math import sqrt
 
 from models.foundation import Foundation
 from models.load import Load

@@ -5,13 +5,12 @@ from typing import Optional
 
 import typer
 from config_db import session_scope
+from loads.queries import is_load_duplicated
 from models.foundation import Foundation
 from models.load import Load
 from models.user_load import UserLoad
 from rich.console import Console
 from rich.table import Table
-
-from .utils import is_load_duplicated
 
 app = typer.Typer()
 console = Console()
