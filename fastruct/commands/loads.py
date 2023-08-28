@@ -129,7 +129,7 @@ def get_by_id(foundation_id: int):
     """Display load details for the requested foundation."""
     with session_scope() as session:
         foundation = session.query(Foundation).filter_by(id=foundation_id).first()
-        table = Table("#", "NAME", "P", "Vx", "Vy", "Mx", "My")
+        table = Table("#", "ID", "NAME", "P", "Vx", "Vy", "Mx", "My")
         table.title = str(foundation)
         table.caption = "(value): loads at the f. CG and f. seal level"
         table.show_lines = True
@@ -137,6 +137,7 @@ def get_by_id(foundation_id: int):
         for i, (user_load, load) in enumerate(zip(foundation.user_loads, foundation.loads, strict=True), start=1):
             row = [
                 f"{i:02}",
+                f"{user_load.id}",
                 user_load.name,
                 f"{user_load.p :.1f} ({load.p:.1f})",
                 f"{user_load.vx:.1f} ({load.vx:.1f})",
@@ -148,3 +149,23 @@ def get_by_id(foundation_id: int):
             table.add_row(*row)
 
     console.print(table)
+
+
+@app.command()
+def delete(user_load_id: int) -> None:
+    """Delete a load from the database.\n
+
+    This command deletes the user_load and load record with the specified ID from the database.\n
+
+    Args:\n
+        user_load_id (int): The ID of the user_load to delete.
+    """
+    with session_scope() as session:
+        user_load = session.query(UserLoad).filter_by(id=user_load_id).first()
+        if user_load is None:
+            print("Load not found")
+            raise typer.Exit()
+
+        session.delete(user_load)
+
+        print(f"Foundation with ID {user_load_id} has been deleted.")
