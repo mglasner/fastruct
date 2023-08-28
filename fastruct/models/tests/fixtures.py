@@ -36,7 +36,18 @@ def foundation_1_1_1(session: Session) -> Foundation:
     Returns:
         Foundation: An instance of Foundation.
     """
-    foundation = Foundation(lx=1, ly=1, lz=1, depth=1, name="my foundation", description="my description")
+    foundation = Foundation(
+        lx=1,
+        ly=1,
+        lz=1,
+        depth=1,
+        ex=0.1,
+        ey=0.1,
+        col_x=0.15,
+        col_y=0.15,
+        name="my foundation",
+        description="my description",
+    )
     session.add(foundation)
     session.commit()
 
