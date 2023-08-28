@@ -24,8 +24,6 @@ def add(
     vy: float,
     mx: float,
     my: float,
-    ex: Optional[float] = 0,
-    ey: Optional[float] = 0,
     name: Optional[str | None] = None,
 ) -> None:
     """Add a new load to the database.\n.
@@ -37,10 +35,6 @@ def add(
         vy (float): Horizontal force in the y direction.\n
         mx (float): Moment around the x axis.\n
         my (float): Moment around the y axis.\n
-        ex (float | None, optional): Eccentricity in the x direction with respect to the center of gravity of the\n
-                                     foundation. Defaults to 0.\n
-        ey (float | None, optional): Eccentricity in the y direction with respect to the center of gravity of the\n
-                                     foundation. Defaults to 0.\n
         name (str | None): Optional name for the user load. Defaults to None.\n
 
     Returns:
@@ -54,8 +48,6 @@ def add(
         "vy": vy,
         "mx": mx,
         "my": my,
-        "ex": ex,
-        "ey": ey,
     }
 
     with session_scope() as session:
@@ -75,8 +67,8 @@ def add(
                 p=p + foundation.weight() + foundation.ground_weight(),
                 vx=vx,
                 vy=vy,
-                mx=mx + vy * foundation.lz + (p * ey) if ey is not None else 0,
-                my=my + vx * foundation.lz + (p * ex) if ex is not None else 0,
+                mx=mx + vy * foundation.lz + p * foundation.ey,
+                my=my + vx * foundation.lz + p * foundation.ex,
             )
             session.add(load)
             print(f"{user_load.id=}")
@@ -115,10 +107,8 @@ def add_from_csv(path: Path) -> None:
             vy = float(line[4])
             mx = float(line[5])
             my = float(line[6])
-            ex = float(line[7]) if line[7] else 0
-            ey = float(line[8]) if line[8] else 0
 
-            add(foundation_id, p, vx, vy, mx, my, ex, ey, name)
+            add(foundation_id, p, vx, vy, mx, my, name)
 
     print("File loaded")
 
