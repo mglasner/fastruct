@@ -221,7 +221,9 @@ def analyze_stresses_and_lifts(
 
         all_rows = []
         for i, (load, stress, percentaje) in enumerate(zip(loads, stresses, percentajes, strict=True), start=1):
-            row = prepare_row(i, load, stress, percentaje, method, max_stress, limit, no_loads, no_color)  # type: ignore
+            row = prepare_row(
+                i, load, stress, percentaje, method, max_stress, limit, no_loads, no_color  # type: ignore
+            )
             all_rows.append(row)
 
         table = analize_table(str(foundation), method, no_loads)  # type: ignore
@@ -235,7 +237,9 @@ def analyze_stresses_and_lifts(
             table = analize_table(str(foundation), method, no_loads)  # type: ignore
             display_page(start_idx, end_idx, all_rows, table)
             if page < num_pages - 1:
-                input(f"Page {page+1}/{num_pages}, press Enter to watch next results... \n")
+                user_input = input(f"Page {page+1}/{num_pages}, press Enter to watch next results, 'q' to quit... ")
+                if user_input == "q":
+                    break
 
 
 @app.command()

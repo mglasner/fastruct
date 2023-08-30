@@ -183,6 +183,7 @@ def get_neutral_axis(foundation: Foundation, load: Load) -> LineString | None:
 
 
 def compute_excentrycity(axial: float, moment_x: float, moment_y: float) -> tuple[float, float]:
+    """Compute load excentricity between bending moment and axial force."""
     ex = moment_y / axial
     ey = -1 * moment_x / axial if moment_x >= 0 else moment_x / axial
     return ex, ey
