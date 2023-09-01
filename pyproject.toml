@@ -11,7 +11,6 @@ write_to = "fastruct/_version.py"
 
 [project]
 name = "fastruct"
-# version = "0.0.0"
 dynamic=["version"]
 description = "Structural analysis and design made fast and simple"
 readme = "README.md"
