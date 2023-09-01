@@ -1,2 +1,3 @@
 # fastruct
-Python command line application for analysis and structural design
+
+## Structural analysis and design made fast and simple

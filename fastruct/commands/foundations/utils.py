@@ -3,9 +3,10 @@ from collections.abc import Iterable
 from typing import Literal
 
 import typer
-from foundations.analysis.bi_direction import bi_direction_analysis
-from foundations.analysis.one_direction import one_direction_analysis
-from models.foundation import Foundation
+
+from fastruct.foundations.analysis.bi_direction import bi_direction_analysis
+from fastruct.foundations.analysis.one_direction import one_direction_analysis
+from fastruct.models.foundation import Foundation
 
 
 def get_max_value(data: list[float | None] | list[tuple[float | None, ...]]) -> float | None:

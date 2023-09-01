@@ -1,6 +1,7 @@
 """Loads queries and database related functions."""
-from models.user_load import UserLoad
 from sqlalchemy.orm import Session
+
+from fastruct.models.user_load import UserLoad
 
 
 def is_load_duplicated(session: Session, load: dict) -> bool:

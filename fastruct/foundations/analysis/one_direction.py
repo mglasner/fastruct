@@ -1,6 +1,6 @@
 """Foundation one direction analysis."""
-from models.foundation import Foundation
-from models.load import Load
+from fastruct.models.foundation import Foundation
+from fastruct.models.load import Load
 
 
 def one_direction_analysis(

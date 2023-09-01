@@ -3,10 +3,11 @@ from typing import Optional
 
 import sqlalchemy as sa
 import typer
-from config_db import session_scope
-from foundations.tables import analize_table, display_page, foundation_table, prepare_row
-from models.foundation import Foundation
 from rich.console import Console
+
+from fastruct.config_db import session_scope
+from fastruct.foundations.tables import analize_table, display_page, foundation_table, prepare_row
+from fastruct.models.foundation import Foundation
 
 from .utils import get_max_value, stresses_and_percentajes_by_method
 

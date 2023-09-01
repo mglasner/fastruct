@@ -2,9 +2,10 @@
 from collections import OrderedDict
 from math import sqrt
 
-from models.foundation import Foundation
-from models.load import Load
 from shapely.geometry import LineString, Polygon
+
+from fastruct.models.foundation import Foundation
+from fastruct.models.load import Load
 
 
 def bi_direction_analysis(foundation: Foundation) -> tuple[list[float | None], list[float]]:

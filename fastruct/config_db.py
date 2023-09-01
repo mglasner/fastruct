@@ -2,9 +2,10 @@
 from contextlib import contextmanager
 from pathlib import Path
 
-from models.db import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from fastruct.models.db import BaseModel
 
 _session_local = None
 
@@ -12,7 +13,10 @@ _session_local = None
 def config_database():
     """Configuración de base de datos."""
     global _session_local  # noqa: PLW0603
-    database_url = f"sqlite:///{Path.cwd() / 'fundaciones.db'}"
+    current_file_path = Path(__file__).resolve()
+    installation_directory = current_file_path.parent
+    # database_url = f"sqlite:///{Path.cwd() / 'fundaciones.db'}"
+    database_url = f"sqlite:///{installation_directory / 'fastructdb.db'}"
     engine = create_engine(database_url)
     _session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     BaseModel.metadata.create_all(bind=engine)
