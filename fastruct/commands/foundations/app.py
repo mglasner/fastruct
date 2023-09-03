@@ -5,9 +5,11 @@ import sqlalchemy as sa
 import typer
 from rich.console import Console
 
+from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
 from fastruct.foundations.tables import analize_table, display_page, foundation_table, prepare_row
 from fastruct.models.foundation import Foundation
+from fastruct.models.project import Project
 
 from .utils import get_max_value, stresses_and_percentajes_by_method
 
@@ -48,12 +50,25 @@ def add(
         depth = lz
 
     with session_scope() as session:
-        fundacion = Foundation(
-            lx=lx, ly=ly, lz=lz, depth=depth, ex=ex, ey=ey, col_x=colx, col_y=coly, name=name, description=description
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = Foundation(
+            lx=lx,
+            ly=ly,
+            lz=lz,
+            depth=depth,
+            ex=ex,
+            ey=ey,
+            col_x=colx,
+            col_y=coly,
+            name=name,
+            description=description,
+            project_id=active_project.id,
         )
-        session.add(fundacion)
+        session.add(foundation)
         session.flush()
-        print(f"{fundacion.id=}")
+        typer.secho(
+            f"Foundation (id={foundation.id}) created succesfuly ({active_project.code})", fg=typer.colors.GREEN
+        )
 
 
 @app.command()
@@ -61,13 +76,14 @@ def get(id: Optional[int] = None):
     """Get all foundations from database or the foundation with the provided id."""
     description_length = 29
     with session_scope() as session:
+        active_project = session.query(Project).filter_by(is_active=True).first()
         if id is None:
-            foundations: list[Foundation] = session.query(Foundation).order_by(sa.desc("updated_at")).all()
+            foundations: list[Foundation] = (
+                session.query(Foundation).filter_by(project_id=active_project.id).order_by(sa.desc("updated_at")).all()
+            )
         else:
-            foundation = session.query(Foundation).filter_by(id=id).first()
-            if foundation is None:
-                typer.secho("Foundation not found", fg=typer.colors.RED)
-                raise typer.Exit()
+            foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
+            check_not_none(foundation, "foundation", active_project)
             foundations = [foundation]
 
         table = foundation_table()
@@ -129,10 +145,9 @@ def update(
         description (str | None): Optional description for the foundation. Defaults to None. Max characters 128.\n
     """
     with session_scope() as session:
-        foundation = session.query(Foundation).filter_by(id=id).first()
-        if foundation is None:
-            typer.secho("Foundation not found", fg=typer.colors.RED)
-            raise typer.Exit()
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
+        check_not_none(foundation, "foundation", active_project)
 
         foundation.lx = lx
         foundation.ly = ly
@@ -167,14 +182,16 @@ def delete(foundation_id: int) -> None:
         foundation_id (int): The ID of the foundation to delete.
     """
     with session_scope() as session:
-        foundation = session.query(Foundation).filter_by(id=foundation_id).first()
-        if foundation is None:
-            typer.secho("Foundation not found", fg=typer.colors.RED)
-            raise typer.Exit()
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = (
+            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+        )
+        check_not_none(foundation, "foundation", active_project)
 
         session.delete(foundation)
-
-        print(f"Foundation with ID {foundation_id} has been deleted.")
+        typer.secho(
+            f"Foundation with ID {foundation_id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN
+        )
 
 
 @app.command(name="analize")
@@ -196,10 +213,11 @@ def analyze_stresses_and_lifts(
         foundation_id (int): The ID of the foundation to analyze.\n
     """
     with session_scope() as session:
-        foundation = session.query(Foundation).filter_by(id=foundation_id).first()
-        if foundation is None:
-            typer.secho("Foundation not found", fg=typer.colors.RED)
-            raise typer.Exit()
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = (
+            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+        )
+        check_not_none(foundation, "foundation", active_project)
 
         stresses, percentajes = stresses_and_percentajes_by_method(foundation, method)  # type: ignore
         max_stress = get_max_value(stresses)
@@ -249,9 +267,10 @@ def flexural_design(foundation_id: int) -> None:
     from foundations.design import get_ultimate_moments
 
     with session_scope() as session:
-        foundation = session.query(Foundation).filter_by(id=foundation_id).first()
-        if foundation is None:
-            typer.secho("Foundation not found", fg=typer.colors.RED)
-            raise typer.Exit()
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = (
+            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+        )
+        check_not_none(foundation, "foundation", active_project)
 
         print(get_ultimate_moments(foundation))

@@ -3,14 +3,17 @@ import csv
 from pathlib import Path
 from typing import Optional
 
+import sqlalchemy as sa
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
 from fastruct.loads.queries import is_load_duplicated
 from fastruct.models.foundation import Foundation
 from fastruct.models.load import Load
+from fastruct.models.project import Project
 from fastruct.models.user_load import UserLoad
 
 app = typer.Typer()
@@ -52,11 +55,12 @@ def add(
     }
 
     with session_scope() as session:
+        active_project = session.query(Project).filter_by(is_active=True).first()
         if not is_load_duplicated(session, user_load_dict):
-            foundation = session.query(Foundation).filter_by(id=foundation_id).first()
-            if foundation is None:
-                print("Foundation not found")
-                raise typer.Exit()
+            foundation = (
+                session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+            )
+            check_not_none(foundation, "foundation", active_project)
 
             user_load = UserLoad(**user_load_dict)
             session.add(user_load)
@@ -118,7 +122,11 @@ def add_from_csv(path: Path) -> None:
 def get_by_id(foundation_id: int):
     """Display load details for the requested foundation."""
     with session_scope() as session:
-        foundation = session.query(Foundation).filter_by(id=foundation_id).first()
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = (
+            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+        )
+        check_not_none(foundation, "foundation", active_project)
         table = Table("#", "ID", "NAME", "P", "Vx", "Vy", "Mx", "My")
         table.title = str(foundation)
         table.caption = "(value): loads at the f. CG and f. seal level"
@@ -151,11 +159,13 @@ def delete(user_load_id: int) -> None:
         user_load_id (int): The ID of the user_load to delete.
     """
     with session_scope() as session:
-        user_load = session.query(UserLoad).filter_by(id=user_load_id).first()
-        if user_load is None:
-            print("Load not found")
-            raise typer.Exit()
-
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        user_load = (
+            session.query(UserLoad)
+            .join(Foundation)
+            .filter(sa.and_(UserLoad.id == user_load_id, Foundation.project_id == active_project.id))
+            .first()
+        )
+        check_not_none(user_load, "load", active_project)
         session.delete(user_load)
-
-        print(f"Foundation with ID {user_load_id} has been deleted.")
+        typer.secho(f"Load with ID {user_load_id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN)

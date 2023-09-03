@@ -35,7 +35,7 @@ def get():
     with session_scope() as session:
         projects = session.query(Project).all()
         for i, project in enumerate(projects, start=1):
-            name = Text(project.name, style="red") if project.is_active else project.name
+            name = Text(project.name, style="green") if project.is_active else project.name
             table.add_row(f"{i:02}", f"{project.id}", name, project.code, project.description)
 
     console.print(table)
@@ -55,4 +55,4 @@ def delete(project_id: int) -> None:
             raise typer.Exit()
 
         session.delete(project)
-        typer.secho(f"Foundation with ID {project_id} has been deleted.", fg=typer.colors.GREEN)
+        typer.secho(f"Project with ID {project_id} has been deleted.", fg=typer.colors.GREEN)
