@@ -10,8 +10,8 @@ app = typer.Typer()
 
 def config_app():
     """App. Configuration."""
-    app.add_typer(loads_app, name="l", help="💪 Loads Module")
-    app.add_typer(foundations_app, name="f", help="🏢 Foundations Module")
+    app.add_typer(loads_app, name="l", help="💪 Loads")
+    app.add_typer(foundations_app, name="f", help="🏢 Foundations")
 
 
 def main():

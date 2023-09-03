@@ -22,6 +22,11 @@ class Foundation(BaseModel):
     col_x: so.Mapped[float] = so.mapped_column(sa.Float)
     col_y: so.Mapped[float] = so.mapped_column(sa.Float)
 
+    # foreign keys
+    project_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("projects.id", ondelete="CASCADE"))
+
+    # relationships
+    project: so.Mapped["Project"] = so.relationship(back_populates="foundation")  # noqa: F821
     loads: so.Mapped[list["Load"]] = so.relationship(cascade="all, delete", back_populates="foundation")  # noqa: F821
     user_loads: so.Mapped[list["UserLoad"]] = so.relationship(  # noqa: F821
         cascade="all, delete", back_populates="foundation"
