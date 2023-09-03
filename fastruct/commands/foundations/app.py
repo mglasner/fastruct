@@ -159,7 +159,7 @@ def update(
 
 @app.command()
 def delete(foundation_id: int) -> None:
-    """Delete a foundation from the database.\n
+    """Delete a foundation from database.\n
 
     This command deletes the foundation record with the specified ID from the database.\n
 

@@ -11,9 +11,10 @@ class Project(BaseModel):
     __tablename__ = "projects"
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True, autoincrement=True)
-    name: so.Mapped[str | None] = so.mapped_column(sa.String(32), index=True)
-    code: so.Mapped[str | None] = so.mapped_column(sa.String(32), index=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(32), index=True)
+    code: so.Mapped[str] = so.mapped_column(sa.String(32), index=True)
     description: so.Mapped[str | None] = so.mapped_column(sa.String(128))
+    is_active: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
 
     foundations: so.Mapped[list["Foundation"]] = so.relationship(
         cascade="all, delete", back_populates="project"
