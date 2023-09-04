@@ -33,12 +33,41 @@ def get():
     """Get list of projects."""
     table = projects_table()
     with session_scope() as session:
-        projects = session.query(Project).all()
+        projects = session.query(Project).order_by(sa.desc("id")).all()
         for i, project in enumerate(projects, start=1):
             name = Text(project.name, style="green") if project.is_active else project.name
             table.add_row(f"{i:02}", f"{project.id}", name, project.code, project.description)
 
     console.print(table)
+
+
+@app.command()
+def activate(id: Optional[int] = None, code: Optional[str] = None):
+    """Activate project."""
+    if id is None and code is None:
+        typer.secho("Project ID or Project code must be provided", fg=typer.colors.RED)
+        raise typer.Exit()
+
+    if id is not None and code is not None:
+        typer.secho("Project ID or Project code must be provided, not both", fg=typer.colors.RED)
+        raise typer.Exit()
+
+    with session_scope() as session:
+        stmt = sa.update(Project).values(is_active=False)
+        session.execute(stmt)
+
+        project = (
+            session.query(Project).filter_by(id=id).first()
+            if id is not None
+            else session.query(Project).filter_by(code=code).first()
+        )
+
+        if project is None:
+            typer.secho("Project not found", fg=typer.colors.RED)
+            raise typer.Exit()
+
+        project.is_active = True
+        typer.secho(f"Project with ID {project.id} has been activated ({project.code}).", fg=typer.colors.GREEN)
 
 
 @app.command()
@@ -55,4 +84,4 @@ def delete(project_id: int) -> None:
             raise typer.Exit()
 
         session.delete(project)
-        typer.secho(f"Project with ID {project_id} has been deleted.", fg=typer.colors.GREEN)
+        typer.secho(f"Project with ID {project_id} has been deleted ({project.code}).", fg=typer.colors.GREEN)
