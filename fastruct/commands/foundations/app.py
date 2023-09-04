@@ -1,12 +1,14 @@
 """Foundations Commands."""
 from typing import Optional
 
+import matplotlib.pyplot as plt
 import sqlalchemy as sa
 import typer
 from rich.console import Console
 
 from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
+from fastruct.foundations.drawings import close_event, draw_foundation
 from fastruct.foundations.tables import analize_table, display_page, foundation_table, prepare_row
 from fastruct.models.foundation import Foundation
 from fastruct.models.project import Project
@@ -272,5 +274,19 @@ def flexural_design(foundation_id: int) -> None:
             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
         )
         check_not_none(foundation, "foundation", active_project)
-
         print(get_ultimate_moments(foundation))
+
+
+@app.command()
+def plot(foundation_id: int) -> None:
+    """Plot foundation."""
+    with session_scope() as session:
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = (
+            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+        )
+        check_not_none(foundation, "foundation", active_project)
+
+        plt.connect("key_press_event", close_event)
+        typer.secho("Press 'q' to close foundation plot.", fg=typer.colors.GREEN)
+        draw_foundation(foundation)
