@@ -1,4 +1,4 @@
-"""Test para el modelo de Foundation."""
+"""Foundation model tests."""
 from random import randint
 
 import pytest
@@ -6,26 +6,27 @@ from sqlalchemy.exc import IntegrityError, StatementError
 from sqlalchemy.orm import Session
 
 from ..foundation import Foundation
-from .fixtures import engine, foundation_1_1_1, session
+from .fixtures import engine, foundation_1_1_1, project_1, session
 
 
 def test_create_foundation(session: Session, foundation_1_1_1: Foundation):
     """Create an instance in database."""
-    fundaciones = session.query(Foundation).all()
-    fundacion = fundaciones[0]
-    assert len(fundaciones) == 1
-    assert fundacion.lx == foundation_1_1_1.lx
-    assert fundacion.ly == foundation_1_1_1.ly
-    assert fundacion.lz == foundation_1_1_1.lz
-    assert fundacion.depth == foundation_1_1_1.depth
-    assert fundacion.name == foundation_1_1_1.name
-    assert fundacion.description == foundation_1_1_1.description
-    assert fundacion.lx == 1
-    assert fundacion.ly == 1
-    assert fundacion.lz == 1
-    assert fundacion.depth == 1
-    assert fundacion.name == "my foundation"
-    assert fundacion.description == "my description"
+    foundations = session.query(Foundation).all()
+    foundation = foundations[0]
+    assert len(foundations) == 1
+    assert foundation.lx == foundation_1_1_1.lx
+    assert foundation.ly == foundation_1_1_1.ly
+    assert foundation.lz == foundation_1_1_1.lz
+    assert foundation.depth == foundation_1_1_1.depth
+    assert foundation.name == foundation_1_1_1.name
+    assert foundation.description == foundation_1_1_1.description
+    assert foundation.lx == 1
+    assert foundation.ly == 1
+    assert foundation.lz == 1
+    assert foundation.depth == 1
+    assert foundation.name == "my foundation"
+    assert foundation.description == "my description"
+    assert foundation.project_id == 1
 
 
 @pytest.mark.parametrize(

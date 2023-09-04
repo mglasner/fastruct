@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..db import BaseModel
 from ..foundation import Foundation
+from ..project import Project
 
 
 @pytest.fixture(scope="session")
@@ -30,7 +31,21 @@ def session(engine, request):
 
 
 @pytest.fixture
-def foundation_1_1_1(session: Session) -> Foundation:
+def project_1(session: Session) -> Project:
+    """Project instance.
+
+    Returns:
+        Project: An instance of Project.
+    """
+    project = Project(name="my project", code="12345", description="my description")
+    session.add(project)
+    session.commit()
+
+    return project
+
+
+@pytest.fixture
+def foundation_1_1_1(session: Session, project_1: Project) -> Foundation:
     """Foundation instance.
 
     Returns:
@@ -47,6 +62,7 @@ def foundation_1_1_1(session: Session) -> Foundation:
         col_y=0.15,
         name="my foundation",
         description="my description",
+        project_id=project_1.id,
     )
     session.add(foundation)
     session.commit()
