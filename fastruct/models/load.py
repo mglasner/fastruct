@@ -17,10 +17,12 @@ class Load(BaseModel):
     mx: so.Mapped[float] = so.mapped_column(sa.Float)
     my: so.Mapped[float] = so.mapped_column(sa.Float)
 
+    # foreign keys
     foundation_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("foundations.id", ondelete="CASCADE"))
-    foundation: so.Mapped["Foundation"] = so.relationship(back_populates="loads")  # noqa: F821
-
     user_load_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("user_loads.id", ondelete="CASCADE"))
+
+    # relationships
+    foundation: so.Mapped["Foundation"] = so.relationship(back_populates="loads")  # noqa: F821
     user_load: so.Mapped["UserLoad"] = so.relationship(back_populates="load")  # noqa: F821
 
     def as_list(self):

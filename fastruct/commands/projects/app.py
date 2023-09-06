@@ -71,17 +71,34 @@ def activate(id: Optional[int] = None, code: Optional[str] = None):
 
 
 @app.command()
-def delete(project_id: int) -> None:
+def delete(id: Optional[int] = None, all: Optional[bool] = None) -> None:
     """Delete project from database.\n
 
     Args:\n
         project_id (int): The ID of the project to delete.
     """
-    with session_scope() as session:
-        project = session.query(Project).filter_by(id=project_id).first()
-        if project is None:
-            typer.secho("Project not found", fg=typer.colors.RED)
-            raise typer.Exit()
+    if id is None and all is None:
+        typer.secho("--id or --all argument must be provided", fg=typer.colors.RED)
+        raise typer.Exit()
 
-        session.delete(project)
-        typer.secho(f"Project with ID {project_id} has been deleted ({project.code}).", fg=typer.colors.GREEN)
+    with session_scope() as session:
+        if id is not None:
+            project = session.query(Project).filter_by(id=id).first()
+            if project is None:
+                typer.secho("Project not found", fg=typer.colors.RED)
+                raise typer.Exit()
+
+            session.delete(project)
+            typer.secho(f"Project with ID {id} has been deleted ({project.code}).", fg=typer.colors.GREEN)
+
+        elif all:
+            if typer.confirm("DANGER! Are you sure you want to delete ALL projects?", abort=True):
+                projects = session.query(Project).all()
+                if not projects:
+                    typer.secho("No projects to delete", fg=typer.colors.YELLOW)
+                    raise typer.Exit()
+
+                for project in projects:
+                    session.delete(project)
+
+                typer.secho("All projects have been deleted.", fg=typer.colors.GREEN)
