@@ -219,7 +219,7 @@ def analyze_stresses_and_lifts(
         foundation = (
             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
         )
-        check_not_none(foundation, "foundation", active_project)
+        check_not_none(foundation, "foundation", str(foundation_id), active_project)
 
         stresses, percentajes = stresses_and_percentajes_by_method(foundation, method)  # type: ignore
         max_stress = get_max_value(stresses)

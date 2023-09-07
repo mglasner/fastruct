@@ -60,7 +60,7 @@ def add(
             foundation = (
                 session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
             )
-            check_not_none(foundation, "foundation", active_project)
+            check_not_none(foundation, "foundation", str(foundation_id), active_project)
 
             user_load = UserLoad(**user_load_dict)
             session.add(user_load)
@@ -86,7 +86,7 @@ def add_from_csv(path: Path) -> None:
     """Generate user_loads and loads from a CSV file.\n.
 
     Assumes the CSV file has the following header format:\n
-    id, name, p, vx, vy, mx, my, ex, ey\n
+    id, name, p, vx, vy, mx, my\n
 
     Lines starting with '#' will be ignored. The first line is considered\n
     the title and is automatically skipped.\n
@@ -126,7 +126,7 @@ def get_by_id(foundation_id: int):
         foundation = (
             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
         )
-        check_not_none(foundation, "foundation", active_project)
+        check_not_none(foundation, "foundation", str(foundation_id), active_project)
         table = Table("#", "ID", "NAME", "P", "Vx", "Vy", "Mx", "My")
         table.title = str(foundation)
         table.caption = "(value): loads at the f. CG and f. seal level"
@@ -166,6 +166,6 @@ def delete(user_load_id: int) -> None:
             .filter(sa.and_(UserLoad.id == user_load_id, Foundation.project_id == active_project.id))
             .first()
         )
-        check_not_none(user_load, "load", active_project)
+        check_not_none(user_load, "load", str(user_load_id), active_project)
         session.delete(user_load)
         typer.secho(f"Load with ID {user_load_id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN)
