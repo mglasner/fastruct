@@ -10,11 +10,11 @@ from rich.table import Table
 
 from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
-from fastruct.loads.queries import is_load_duplicated
 from fastruct.models.foundation import Foundation
 from fastruct.models.load import Load
 from fastruct.models.project import Project
 from fastruct.models.user_load import UserLoad
+from fastruct.queries.loads import is_load_duplicated
 
 app = typer.Typer()
 console = Console()

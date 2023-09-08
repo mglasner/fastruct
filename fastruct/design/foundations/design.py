@@ -2,7 +2,7 @@
 from models.foundation import Foundation
 from models.load import Load
 
-from .analysis.one_direction import compressed_width_for_triangular_distribution, compute_stress
+from ...analysis.foundations.one_direction import compressed_width_for_triangular_distribution, compute_stress
 
 
 def get_ultimate_moments(

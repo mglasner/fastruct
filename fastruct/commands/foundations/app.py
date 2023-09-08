@@ -8,10 +8,10 @@ from rich.console import Console
 
 from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
-from fastruct.foundations.drawings import close_event, draw_foundation
-from fastruct.foundations.tables import analize_table, display_page, foundation_table, prepare_row
+from fastruct.tables.foundations.tables import analize_table, display_page, foundation_table, prepare_row
 from fastruct.models.foundation import Foundation
 from fastruct.models.project import Project
+from fastruct.plotting.foundations.plot import close_event, draw_foundation
 
 from .utils import get_max_value, stresses_and_percentajes_by_method
 
@@ -85,7 +85,7 @@ def get(id: Optional[int] = None):
             )
         else:
             foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
-            check_not_none(foundation, "foundation", active_project)
+            check_not_none(foundation, "foundation", str(id), active_project)
             foundations = [foundation]
 
         table = foundation_table()

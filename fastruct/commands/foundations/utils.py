@@ -4,8 +4,8 @@ from typing import Literal
 
 import typer
 
-from fastruct.foundations.analysis.bi_direction import bi_direction_analysis
-from fastruct.foundations.analysis.one_direction import one_direction_analysis
+from fastruct.analysis.foundations.bi_direction import bi_direction_analysis
+from fastruct.analysis.foundations.one_direction import one_direction_analysis
 from fastruct.models.foundation import Foundation
 
 
