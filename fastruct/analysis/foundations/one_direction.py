@@ -45,7 +45,9 @@ def compute_stress(axial: float, moment: float, width: float, length: float) -> 
         sigma_max = axial_stress * (1 + 6 * excentricity / width)
         sigma_min = axial_stress * (1 - 6 * excentricity / width)
     elif is_triangular_distribution(axial, moment, width):
-        sigma_max = (2 * axial) / (3 * length * (width / 2 - excentricity))
+        compressed_width = compressed_width_for_triangular_distribution(width, excentricity)
+        axial_stress = axial / (compressed_width * length)
+        sigma_max = 2 * axial_stress
         sigma_min = 0
 
     return sigma_max, sigma_min
@@ -59,7 +61,7 @@ def compute_percentaje(axial: float, moment: float, width: float) -> float:
     elif is_triangular_distribution(axial, moment, width):
         excentricity = abs(moment / axial)
         compressed_width = compressed_width_for_triangular_distribution(width, excentricity)
-        return 0 if compressed_width <= 0 else compressed_width / width * 100
+        return compressed_width / width * 100
 
     return 0
 
@@ -82,4 +84,10 @@ def is_triangular_distribution(axial: float, moment: float, width: float) -> boo
 
 def compressed_width_for_triangular_distribution(width: float, excentricity: float) -> float:
     """Compute compressed width."""
-    return 3 * (width / 2 - excentricity)
+    if width <= 0:
+        raise ValueError("width can't be negative.")
+
+    if abs(excentricity) <= width / 6:
+        raise ValueError("It is not triangular distribution.")
+
+    return 0 if abs(excentricity) >= width / 2 else 3 * (width / 2 - abs(excentricity))

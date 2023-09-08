@@ -8,10 +8,10 @@ from rich.console import Console
 
 from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
-from fastruct.tables.foundations.tables import analize_table, display_page, foundation_table, prepare_row
 from fastruct.models.foundation import Foundation
 from fastruct.models.project import Project
 from fastruct.plotting.foundations.plot import close_event, draw_foundation
+from fastruct.tables.foundations.tables import analize_table, display_page, foundation_table, prepare_row
 
 from .utils import get_max_value, stresses_and_percentajes_by_method
 
