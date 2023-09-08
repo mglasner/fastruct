@@ -88,6 +88,9 @@ class Foundation(BaseModel):
             float: The weight of the foundation in tons, based on the calculated volume in cubic meters and the provided
                 concrete density.
         """
+        if concrete_density <= 0:
+            raise ValueError(f"Concrete density must be greather than 0 {concrete_density=}")
+
         return self.volume() * concrete_density
 
     def ground_weight(self, ground_density: float = 1.6) -> float:
@@ -100,6 +103,8 @@ class Foundation(BaseModel):
             float: The weight of the ground in tons, based on the calculated area in square meters, ground height,
                 and the provided ground density.
         """
+        if ground_density <= 0:
+            raise ValueError(f"Ground density must be greather than 0 {ground_density=}")
         ground_height = self.depth - self.lz
         return (self.area() - self.column_area()) * ground_height * ground_density
 
@@ -113,5 +118,5 @@ class Foundation(BaseModel):
         Returns:
             str: The string representation of the foundation.
         """
-        name = f"-{self.name}" if self.name is not None else ""
-        return f"F{self.id:03}{name}: Lx={self.lx:.2f} Ly={self.ly:.2f} Lz={self.lz:.2f} Depth={self.depth:.2f}"
+        name = f" - {self.name}" if self.name is not None else ""
+        return f"F{self.id:03}{name}: Lx={self.lx:.2f} Ly={self.ly:.2f} Lz={self.lz:.2f}"

@@ -31,7 +31,7 @@ def session(engine, request):
 
 
 @pytest.fixture
-def project_1(session: Session) -> Project:
+def project1(session: Session) -> Project:
     """Project instance.
 
     Returns:
@@ -45,7 +45,7 @@ def project_1(session: Session) -> Project:
 
 
 @pytest.fixture
-def foundation_1_1_1(session: Session, project_1: Project) -> Foundation:
+def foundation1(session: Session, project1: Project) -> Foundation:
     """Foundation instance.
 
     Returns:
@@ -62,7 +62,7 @@ def foundation_1_1_1(session: Session, project_1: Project) -> Foundation:
         col_y=0.15,
         name="my foundation",
         description="my description",
-        project_id=project_1.id,
+        project_id=project1.id,
     )
     session.add(foundation)
     session.commit()

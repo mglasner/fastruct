@@ -2,10 +2,10 @@
 from sqlalchemy.orm import Session
 
 from ..project import Project
-from .fixtures import engine, project_1, session
+from .fixtures import engine, project1, session
 
 
-def test_create_project(session: Session, project_1: Project):
+def test_create_project(session: Session, project1: Project):
     """Create an instance in database."""
     projects = session.query(Project).all()
     project = projects[0]
