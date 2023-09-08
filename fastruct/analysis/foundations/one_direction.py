@@ -1,21 +1,21 @@
 """Foundation one direction analysis."""
 from fastruct.models.foundation import Foundation
-from fastruct.models.load import Load
+from fastruct.models.seal_load import SealLoad
 
 
 def one_direction_analysis(
     foundation: Foundation,
 ) -> tuple[list[tuple[float | None, float | None]], list[tuple[float, float]]]:
     """Returns maximun stresses and support percentaje by directions x and y."""
-    percentajes = [get_percentaje_by_direction(foundation, load) for load in foundation.loads]
-    all_stresses = [get_stress_by_direction(foundation, load) for load in foundation.loads]
+    percentajes = [get_percentaje_by_direction(foundation, load) for load in foundation.seal_loads]
+    all_stresses = [get_stress_by_direction(foundation, load) for load in foundation.seal_loads]
     stresses = [(max_x, max_y) for max_x, _, max_y, _ in all_stresses]
 
     return stresses, percentajes
 
 
 def get_stress_by_direction(
-    foundation: Foundation, load: Load
+    foundation: Foundation, load: SealLoad
 ) -> tuple[float | None, float | None, float | None, float | None]:
     """Get the stress for directions x, y."""
     max_x, min_x = compute_stress(load.p, load.my, foundation.lx, foundation.ly)
@@ -23,7 +23,7 @@ def get_stress_by_direction(
     return max_x, min_x, max_y, min_y
 
 
-def get_percentaje_by_direction(foundation: Foundation, load: Load) -> tuple[float, float]:
+def get_percentaje_by_direction(foundation: Foundation, load: SealLoad) -> tuple[float, float]:
     """Get the lifting percentaje for directions x, y."""
     percentaje_x = compute_percentaje(load.p, load.my, foundation.lx)
     percentaje_y = compute_percentaje(load.p, load.mx, foundation.ly)

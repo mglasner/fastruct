@@ -138,7 +138,7 @@ def prepare_row(
         method (str): The analysis method ("bi-direction", "one-direction", "compare").
         max_stress (float): The maximum stress value among all loads.
         limit (float | None): An optional limit value for stress or percentage.
-        loads (bool): Whether to exclude load details in the row.
+        show_loads (bool): Whether to exclude load details in the row.
         color (bool): Whether to exclude color formatting.
 
     Returns:

@@ -166,10 +166,10 @@ def update(
 
         session.commit()
 
-        for user_load, load in zip(foundation.user_loads, foundation.loads, strict=True):
-            load.p = user_load.p + foundation.weight() + foundation.ground_weight()
-            load.mx = user_load.mx + user_load.vy * foundation.lz + user_load.p * foundation.ey
-            load.my = user_load.my + user_load.vx * foundation.lz + user_load.p * foundation.ex
+        for user_load, seal_load in zip(foundation.user_loads, foundation.seal_loads, strict=True):
+            seal_load.p = user_load.p + foundation.weight() + foundation.ground_weight()
+            seal_load.mx = user_load.mx + user_load.vy * foundation.lz + user_load.p * foundation.ey
+            seal_load.my = user_load.my + user_load.vx * foundation.lz + user_load.p * foundation.ex
 
         print(foundation)
 
@@ -217,7 +217,7 @@ def analyze_stresses_and_lifts(
         stresses, percentajes = stresses_and_percentajes_by_method(foundation, method)  # type: ignore
         max_stress = get_max_value(stresses)
 
-        loads = foundation.loads
+        seal_loads = foundation.seal_loads
         if order is not None:
             if order not in ("stress", "percentaje"):
                 typer.secho("Order must be 'stress' or 'percentaje'", fg=typer.colors.RED)
@@ -231,11 +231,13 @@ def analyze_stresses_and_lifts(
                 # Order asc by 'percentaje'
                 data.sort(key=lambda x: x[2])
 
-            loads, stresses, percentajes = zip(*data, strict=True)
+            seal_loads, stresses, percentajes = zip(*data, strict=True)
 
         all_rows = []
-        for i, (load, stress, percentaje) in enumerate(zip(loads, stresses, percentajes, strict=True), start=1):
-            row = prepare_row(i, load, stress, percentaje, method, max_stress, limit, show_loads, color)  # type: ignore
+        for i, (seal_load, stress, percentaje) in enumerate(
+            zip(seal_loads, stresses, percentajes, strict=True), start=1
+        ):
+            row = prepare_row(i, seal_load, stress, percentaje, method, max_stress, limit, show_loads, color)  # type: ignore
             all_rows.append(row)
 
         table = analize_table(str(foundation), method, show_loads)  # type: ignore
@@ -254,18 +256,18 @@ def analyze_stresses_and_lifts(
                     break
 
 
-@app.command()
-def flexural_design(foundation_id: int) -> None:
-    """Flexural design of foundation."""
-    from foundations.design import get_ultimate_moments
+# @app.command()
+# def flexural_design(foundation_id: int) -> None:
+#     """Flexural design of foundation."""
+#     from foundations.design import get_ultimate_moments
 
-    with session_scope() as session:
-        active_project = session.query(Project).filter_by(is_active=True).first()
-        foundation = (
-            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
-        )
-        check_not_none(foundation, "foundation", str(foundation_id), active_project)
-        print(get_ultimate_moments(foundation))
+#     with session_scope() as session:
+#         active_project = session.query(Project).filter_by(is_active=True).first()
+#         foundation = (
+#             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+#         )
+#         check_not_none(foundation, "foundation", str(foundation_id), active_project)
+#         print(get_ultimate_moments(foundation))
 
 
 @app.command()

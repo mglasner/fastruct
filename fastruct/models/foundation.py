@@ -27,7 +27,9 @@ class Foundation(BaseModel):
 
     # relationships
     project: so.Mapped["Project"] = so.relationship(back_populates="foundations")  # noqa: F821
-    loads: so.Mapped[list["Load"]] = so.relationship(cascade="all, delete", back_populates="foundation")  # noqa: F821
+    seal_loads: so.Mapped[list["SealLoad"]] = so.relationship(
+        cascade="all, delete", back_populates="foundation"
+    )  # noqa: F821
     user_loads: so.Mapped[list["UserLoad"]] = so.relationship(  # noqa: F821
         cascade="all, delete", back_populates="foundation"
     )

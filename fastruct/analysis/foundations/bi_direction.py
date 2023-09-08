@@ -5,12 +5,12 @@ from math import sqrt
 from shapely.geometry import LineString, Polygon
 
 from fastruct.models.foundation import Foundation
-from fastruct.models.load import Load
+from fastruct.models.seal_load import SealLoad
 
 
 def bi_direction_analysis(foundation: Foundation) -> tuple[list[float | None], list[float]]:
     """Returns maximun stresses and support percentaje by directions x and y."""
-    results = [get_bi_directional_percentaje_and_stress(foundation, load) for load in foundation.loads]
+    results = [get_bi_directional_percentaje_and_stress(foundation, load) for load in foundation.seal_loads]
     stresses = [stress for stress, _ in results]
     percentajes = [percentaje for _, percentaje in results]
 
@@ -27,7 +27,7 @@ def calculate_bi_directional_stress(
     return axial / area + abs(moment_x) * ly / 2 / inertia_x + abs(moment_y) * lx / 2 / inertia_y
 
 
-def get_bi_directional_percentaje_and_stress(foundation: Foundation, load: Load) -> tuple[float | None, float]:
+def get_bi_directional_percentaje_and_stress(foundation: Foundation, load: SealLoad) -> tuple[float | None, float]:
     """Lifting percentaje on the foundation due to combined axial and moment forces in both orthogonal directions."""
     neutral_axis = get_neutral_axis(foundation, load)
     foundation_polygon = get_foundation_xy_polygon(foundation.lx, foundation.ly)
@@ -76,7 +76,7 @@ def get_bi_directional_percentaje_and_stress(foundation: Foundation, load: Load)
     )
 
 
-def is_in_compresion(foundation: Foundation, load: Load, polygon: Polygon) -> bool:
+def is_in_compresion(foundation: Foundation, load: SealLoad, polygon: Polygon) -> bool:
     """Determine if the foundation is entirely under compressive stress.
 
     This function evaluates the stress state over the exterior points of a polygon
@@ -86,7 +86,7 @@ def is_in_compresion(foundation: Foundation, load: Load, polygon: Polygon) -> bo
     Parameters:
         foundation (Foundation): The foundation object, containing geometrical properties
                                  such as dimensions.
-        load (Load): The load object containing the axial and moment forces applied to
+        load (SealLoad): The load object containing the axial and moment forces applied to
                      the foundation.
         polygon (Polygon): The Polygon object representing the XY plane section of the
                            foundation.
@@ -138,7 +138,7 @@ def get_foundation_xy_polygon(width: float, height: float) -> Polygon:
     return Polygon(coordinates)
 
 
-def get_neutral_axis(foundation: Foundation, load: Load) -> LineString | None:
+def get_neutral_axis(foundation: Foundation, load: SealLoad) -> LineString | None:
     """Calculate the neutral axis of the foundation under a given load.
 
     The function computes the equation of the neutral axis based on the
@@ -147,7 +147,7 @@ def get_neutral_axis(foundation: Foundation, load: Load) -> LineString | None:
 
     Parameters:
         foundation (Foundation): The foundation object containing its dimensions.
-        load (Load): The applied load object containing force and moment values.
+        load (SealLoad): The applied load object containing force and moment values.
 
     Returns:
         LineString: The coordinates of the two endpoints of the neutral axis.

@@ -20,7 +20,7 @@ class UserLoad(BaseModel):
 
     foundation_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("foundations.id", ondelete="CASCADE"))
     foundation: so.Mapped["Foundation"] = so.relationship(back_populates="user_loads")  # noqa: F821
-    load: so.Mapped["Load"] = so.relationship(back_populates="user_load")  # noqa: F821
+    seal_load: so.Mapped["SealLoad"] = so.relationship(back_populates="user_load")  # noqa: F821
 
     def as_list(self):
         """List serialization."""
