@@ -149,7 +149,7 @@ def update(
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
         foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
-        check_not_none(foundation, "foundation", active_project)
+        check_not_none(foundation, "foundation", str(id), active_project)
 
         foundation.lx = lx
         foundation.ly = ly
@@ -188,7 +188,7 @@ def delete(foundation_id: int) -> None:
         foundation = (
             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
         )
-        check_not_none(foundation, "foundation", active_project)
+        check_not_none(foundation, "foundation", str(foundation_id), active_project)
 
         session.delete(foundation)
         typer.secho(
@@ -199,21 +199,14 @@ def delete(foundation_id: int) -> None:
 @app.command(name="analize")
 def analyze_stresses_and_lifts(
     foundation_id: int,
-    method: Optional[str] = "bi-direction",
-    limit: Optional[float] = None,
-    no_loads: bool = False,
-    no_color: bool = False,
-    rows_per_page: Optional[int] = None,
-    order: Optional[str] = None,
+    limit: float = typer.Option(None, help="Stress limit. Results exceeding this value will be highlighted in yellow"),
+    method: str = typer.Option("bi-direction", help="bi-direction/one-direction/compare"),
+    order: str = typer.Option(None, help="stress/percentaje"),
+    color: bool = typer.Option(True, help="Use colors on results table", rich_help_panel="Format"),
+    show_loads: bool = typer.Option(True, help="Show the loads applied over foundation", rich_help_panel="Format"),
+    rows_per_page: int = typer.Option(10, help="Records per page", rich_help_panel="Format"),
 ) -> None:
-    """Analyze maximum stresses and lifts.\n
-
-    This function takes the ID of a foundation, fetches the foundation data and then\n
-    computes the maximum stresses and lifts occurring in the foundation.\n
-
-    Args:\n
-        foundation_id (int): The ID of the foundation to analyze.\n
-    """
+    """Analyze maximum stress and support percentaje."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
         foundation = (
@@ -242,12 +235,10 @@ def analyze_stresses_and_lifts(
 
         all_rows = []
         for i, (load, stress, percentaje) in enumerate(zip(loads, stresses, percentajes, strict=True), start=1):
-            row = prepare_row(
-                i, load, stress, percentaje, method, max_stress, limit, no_loads, no_color  # type: ignore
-            )
+            row = prepare_row(i, load, stress, percentaje, method, max_stress, limit, show_loads, color)  # type: ignore
             all_rows.append(row)
 
-        table = analize_table(str(foundation), method, no_loads)  # type: ignore
+        table = analize_table(str(foundation), method, show_loads)  # type: ignore
         if rows_per_page is None:
             rows_per_page = 20
 
@@ -255,7 +246,7 @@ def analyze_stresses_and_lifts(
         for page in range(num_pages):
             start_idx = page * rows_per_page
             end_idx = start_idx + rows_per_page
-            table = analize_table(str(foundation), method, no_loads)  # type: ignore
+            table = analize_table(str(foundation), method, show_loads)  # type: ignore
             display_page(start_idx, end_idx, all_rows, table)
             if page < num_pages - 1:
                 user_input = input(f"Page {page+1}/{num_pages}, press Enter to watch next results, 'q' to quit... ")
@@ -273,7 +264,7 @@ def flexural_design(foundation_id: int) -> None:
         foundation = (
             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
         )
-        check_not_none(foundation, "foundation", active_project)
+        check_not_none(foundation, "foundation", str(foundation_id), active_project)
         print(get_ultimate_moments(foundation))
 
 
@@ -285,7 +276,7 @@ def plot(foundation_id: int) -> None:
         foundation = (
             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
         )
-        check_not_none(foundation, "foundation", active_project)
+        check_not_none(foundation, "foundation", str(foundation_id), active_project)
 
         plt.connect("key_press_event", close_event)
         typer.secho("Press 'q' to close foundation plot.", fg=typer.colors.GREEN)

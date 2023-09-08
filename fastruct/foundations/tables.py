@@ -15,10 +15,10 @@ LIMIT_STRESS_COLOR = "yellow"
 MIN_PERCENTAJE_COLOR = "blue"
 
 
-def analize_table(title: str, method: Literal["bi-directional", "one-direction", "compare"], no_loads: bool) -> Table:
+def analize_table(title: str, method: Literal["bi-directional", "one-direction", "compare"], loads: bool) -> Table:
     """Table configuration."""
     columns = ["#", "NAME"]
-    if not no_loads:
+    if loads:
         columns.extend(["P", "Vx", "Vy", "Mx", "My"])
 
     if method == "bi-direction":
@@ -43,21 +43,21 @@ def format_rows(
     method: Literal["bi-directional", "one-direction", "compare"],
     max_stress: float,
     limit_stress: float | None = None,
-    no_color: bool = False,
+    color: bool = True,
 ) -> list[str | Text]:
     """Generate row data by analysis method."""
     if limit_stress is None:
         limit_stress = max_stress
 
-    if no_color:
-        max_stress_color = ""
-        limit_stress_color = ""
-        min_percentaje_color = ""
-
-    else:
+    if color:
         max_stress_color = "red"
         limit_stress_color = "yellow"
         min_percentaje_color = "blue"
+
+    else:
+        max_stress_color = ""
+        limit_stress_color = ""
+        min_percentaje_color = ""
 
     def format_stress(s: float) -> str | Text:
         if s == max_stress:
@@ -121,8 +121,8 @@ def prepare_row(
     method: Literal["bi-directional", "one-direction", "compare"],
     max_stress: float,
     limit: float | None,
-    no_loads: bool,
-    no_color: bool,
+    show_loads: bool,
+    color: bool,
 ) -> tuple[Text]:
     """Prepare a single row for the output table.
 
@@ -138,8 +138,8 @@ def prepare_row(
         method (str): The analysis method ("bi-direction", "one-direction", "compare").
         max_stress (float): The maximum stress value among all loads.
         limit (float | None): An optional limit value for stress or percentage.
-        no_loads (bool): Whether to exclude load details in the row.
-        no_color (bool): Whether to exclude color formatting.
+        loads (bool): Whether to exclude load details in the row.
+        color (bool): Whether to exclude color formatting.
 
     Returns:
         tuple[Text]: The prepared row as a tuple of Text objects.
@@ -149,7 +149,7 @@ def prepare_row(
         Text(f"{load.user_load.name}", style="bold") if load.user_load.name is not None else None,
     ]
 
-    if not no_loads:
+    if show_loads:
         row.extend(
             [
                 Text(f"{load.p :.1f}", style="black"),
@@ -160,10 +160,10 @@ def prepare_row(
             ]
         )
 
-    extra_data = format_rows(stress, percentaje, method, max_stress, limit, no_color)  # type: ignore
+    extra_data = format_rows(stress, percentaje, method, max_stress, limit, color)  # type: ignore
     row.extend(extra_data)
 
-    return tuple(row)
+    return row
 
 
 def display_page(start_idx: int, end_idx: int, all_rows: list[tuple[Any, ...]], table) -> None:
