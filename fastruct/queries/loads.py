@@ -23,6 +23,7 @@ def is_load_duplicated(session: Session, load: dict) -> bool:
             vy=load["vy"],
             mx=load["mx"],
             my=load["my"],
+            name=load["name"],
         )
         .first()
     )

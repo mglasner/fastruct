@@ -1,16 +1,22 @@
 """Foundations Commands."""
+import csv
+from pathlib import Path
 from typing import Optional
 
 import matplotlib.pyplot as plt
 import sqlalchemy as sa
 import typer
 from rich.console import Console
+from rich.table import Table
 
 from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
 from fastruct.models.foundation import Foundation
 from fastruct.models.project import Project
+from fastruct.models.seal_load import SealLoad
+from fastruct.models.user_load import UserLoad
 from fastruct.plotting.foundations.plot import close_event, draw_foundation
+from fastruct.queries.loads import is_load_duplicated
 from fastruct.tables.foundations.tables import analize_table, display_page, foundation_table, prepare_row
 
 from .utils import get_max_value, stresses_and_percentajes_by_method
@@ -32,7 +38,7 @@ def add(
     name: Optional[str] = None,
     description: Optional[str] = None,
 ) -> None:
-    """Add a new foundation to the database.\n
+    """Add foundation to active project.
 
     Args:\n
         lx (float): Width of the foundation in the x direction.\n
@@ -194,6 +200,140 @@ def delete(foundation_id: int) -> None:
         typer.secho(
             f"Foundation with ID {foundation_id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN
         )
+
+
+@app.command(name="add-load", context_settings={"ignore_unknown_options": True})
+def add_load(
+    foundation_id: int = typer.Argument(help="Foundation ID"),
+    p: float = typer.Argument(help="Axial Load"),
+    vx: float = typer.Argument(help="Shear Load in x-direction"),
+    vy: float = typer.Argument(help="Shear Load in x-direction"),
+    mx: float = typer.Argument(help="Moment over x-axis"),
+    my: float = typer.Argument(help="Moment over y-axis"),
+    name: Optional[str] = typer.Option(None, help="Optional Name for load"),
+) -> None:
+    """Add load to foundation."""
+    user_load_dict = {
+        "foundation_id": foundation_id,
+        "name": name,
+        "p": p,
+        "vx": vx,
+        "vy": vy,
+        "mx": mx,
+        "my": my,
+    }
+
+    with session_scope() as session:
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        if not is_load_duplicated(session, user_load_dict):
+            foundation = (
+                session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+            )
+            check_not_none(foundation, "foundation", str(foundation_id), active_project)
+
+            user_load = UserLoad(**user_load_dict)
+            session.add(user_load)
+            session.flush()
+
+            load = SealLoad(
+                foundation_id=foundation_id,
+                user_load_id=user_load.id,
+                p=p + foundation.weight() + foundation.ground_weight(),
+                vx=vx,
+                vy=vy,
+                mx=mx + vy * foundation.lz + p * foundation.ey,
+                my=my + vx * foundation.lz + p * foundation.ex,
+            )
+            session.add(load)
+            typer.secho(f"Load added succesfuly ({active_project.code})", fg=typer.colors.GREEN)
+        else:
+            typer.secho(
+                f"Load already exists for foundation (id: {foundation_id}) ({active_project.code})", fg=typer.colors.RED
+            )
+
+
+@app.command(name="add-loads-from-csv")
+def add_loads_from_csv(path: Path = typer.Argument(help="Path to csv file")) -> None:
+    """Add loads from csv file.
+
+    - Format: id, name, p, vx, vy, mx, my
+
+    - Lines starting with '#' will be ignored.
+
+    - The first line is considered the title and is automatically skipped.
+
+    - Empty lines are allowed.
+    """
+    if not path.is_file():
+        typer.secho("Path is not valid.", fg=typer.colors.RED)
+        raise typer.Exit()
+
+    with open(path, newline="") as csv_file:
+        reader = csv.reader(csv_file)
+        next(reader)  # Skip title line
+        for line in reader:
+            # Skip empty lines or lines starting with '#'
+            if not line or line[0].strip().startswith("#"):
+                continue
+
+            foundation_id = int(line[0])
+            name = str(line[1]) if line[1] else None
+            p = float(line[2])
+            vx = float(line[3])
+            vy = float(line[4])
+            mx = float(line[5])
+            my = float(line[6])
+
+            add_load(foundation_id, p, vx, vy, mx, my, name)
+
+    typer.secho("File loaded", fg=typer.colors.GREEN)
+
+
+@app.command(name="get-loads")
+def get_loads(foundation_id: int = typer.Argument(help="Foundation ID")):
+    """Display loads details for the requested foundation."""
+    with session_scope() as session:
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = (
+            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
+        )
+        check_not_none(foundation, "foundation", str(foundation_id), active_project)
+        table = Table("#", "ID", "NAME", "P", "Vx", "Vy", "Mx", "My")
+        table.title = str(foundation)
+        table.caption = "(value): loads at the f. CG and f. seal level"
+        table.show_lines = True
+
+        for i, (user_load, load) in enumerate(zip(foundation.user_loads, foundation.seal_loads, strict=True), start=1):
+            row = [
+                f"{i:02}",
+                f"{user_load.id}",
+                user_load.name,
+                f"{user_load.p :.1f} ({load.p:.1f})",
+                f"{user_load.vx:.1f} ({load.vx:.1f})",
+                f"{user_load.vy:.1f} ({load.vy:.1f})",
+                f"{user_load.mx:.1f} ({load.mx:.1f})",
+                f"{user_load.my:.1f} ({load.my:.1f})",
+            ]
+
+            table.add_row(*row)
+
+    console.print(table)
+
+
+@app.command(name="delete-load")
+def delete_load(load_id: int = typer.Argument(help="ID of the load to be deleted.")) -> None:
+    """Delete foundation load."""
+    with session_scope() as session:
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        user_load = (
+            session.query(UserLoad)
+            .join(Foundation)
+            .filter(sa.and_(UserLoad.id == load_id, Foundation.project_id == active_project.id))
+            .first()
+        )
+        check_not_none(user_load, "load", str(load_id), active_project)
+        session.delete(user_load)
+        typer.secho(f"Load with ID {load_id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN)
 
 
 @app.command(name="analize")
