@@ -10,11 +10,11 @@ from fastruct.models.foundation import Foundation
 def get_table(foundations: list[Foundation]) -> tuple[Table, list[Any]]:
     """Set table for get foundations command."""
     table = table_header()
-    rows = generate_rows(table, foundations)
+    rows = generate_rows(foundations)
     return table, rows
 
 
-def generate_rows(table: Table, foundations: list[Foundation]) -> list[Any]:
+def generate_rows(foundations: list[Foundation]) -> list[Any]:
     """Add foundation data to table."""
     return [
         [

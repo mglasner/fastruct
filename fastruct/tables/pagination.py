@@ -8,7 +8,7 @@ from rich.table import Table
 console = Console()
 
 
-def display_page(start_idx: int, end_idx: int, all_rows: list[tuple[Any, ...]], table) -> None:
+def display_page(start_idx: int, end_idx: int, all_rows: list[tuple[Any, ...]], table: Table) -> None:
     """Display a page of rows in the output table.
 
     This function takes a range of indices and adds the corresponding rows to the table.
