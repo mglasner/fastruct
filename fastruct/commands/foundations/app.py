@@ -16,9 +16,10 @@ from fastruct.models.seal_load import SealLoad
 from fastruct.models.user_load import UserLoad
 from fastruct.plotting.foundations.plot import close_event, draw_foundation
 from fastruct.queries.loads import is_load_duplicated
-from fastruct.tables.foundations.analize import analize_table, display_page
+from fastruct.tables.foundations.analize import analize_table
 from fastruct.tables.foundations.get import get_table
 from fastruct.tables.foundations.get_loads import get_loads_table
+from fastruct.tables.pagination import paginate_table
 
 from .utils import get_max_value, stresses_and_percentajes_by_method
 
@@ -81,7 +82,9 @@ def add(
 
 
 @app.command()
-def get(id: Optional[int] = None):
+def get(
+    id: Optional[int] = None, rows_per_page: int = typer.Option(10, help="Records per page", rich_help_panel="Format")
+):
     """Get all foundations from database or the foundation with the provided id."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
@@ -94,8 +97,8 @@ def get(id: Optional[int] = None):
             check_not_none(foundation, "foundation", str(id), active_project)
             foundations = [foundation]
 
-        table = get_table(foundations)
-    console.print(table)
+        table, rows = get_table(foundations)
+        paginate_table(table, rows, rows_per_page, get_table, foundations)
 
 
 @app.command()
@@ -267,7 +270,10 @@ def add_loads_from_csv(path: Path = typer.Argument(help="Path to csv file")) -> 
 
 
 @app.command(name="get-loads")
-def get_loads(foundation_id: int = typer.Argument(help="Foundation ID")):
+def get_loads(
+    foundation_id: int = typer.Argument(help="Foundation ID"),
+    rows_per_page: int = typer.Option(10, help="Records per page", rich_help_panel="Format"),
+):
     """Display loads details for the requested foundation."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
@@ -275,8 +281,8 @@ def get_loads(foundation_id: int = typer.Argument(help="Foundation ID")):
             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
         )
         check_not_none(foundation, "foundation", str(foundation_id), active_project)
-        table = get_loads_table(foundation)
-    console.print(table)
+        table, rows = get_loads_table(foundation)
+        paginate_table(table, rows, rows_per_page, get_loads_table, foundation)
 
 
 @app.command(name="delete-load")
@@ -318,19 +324,21 @@ def analyze_stresses_and_lifts(
         table, rows = analize_table(
             foundation, limit, method, order, color, show_loads, stresses, percentajes, max_stress
         )
-
-        num_pages = len(rows) // rows_per_page + (1 if len(rows) % rows_per_page else 0)
-        for page in range(num_pages):
-            start_idx = page * rows_per_page
-            end_idx = start_idx + rows_per_page
-            table, rows = analize_table(
-                foundation, limit, method, order, color, show_loads, stresses, percentajes, max_stress
-            )
-            display_page(start_idx, end_idx, rows, table)
-            if page < num_pages - 1:
-                user_input = input(f"Page {page+1}/{num_pages}, press Enter to watch next results, 'q' to quit... ")
-                if user_input == "q":
-                    break
+        paginate_table(
+            table,
+            rows,
+            rows_per_page,
+            analize_table,
+            foundation,
+            limit,
+            method,
+            order,
+            color,
+            show_loads,
+            stresses,
+            percentajes,
+            max_stress,
+        )
 
 
 # @app.command()

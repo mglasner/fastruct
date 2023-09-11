@@ -1,20 +1,23 @@
 """Get Foundation table."""
+from typing import Any
+
 from rich.table import Table
+from rich.text import Text
 
 from fastruct.models.foundation import Foundation
 
 
-def get_table(foundations: list[Foundation]) -> Table:
+def get_table(foundations: list[Foundation]) -> tuple[Table, list[Any]]:
     """Set table for get foundations command."""
     table = table_header()
-    add_rows(table, foundations)
-    return table
+    rows = generate_rows(table, foundations)
+    return table, rows
 
 
-def add_rows(table: Table, foundations: list[Foundation]) -> None:
+def generate_rows(table: Table, foundations: list[Foundation]) -> list[Any]:
     """Add foundation data to table."""
-    for foundation in foundations:
-        table.add_row(
+    return [
+        [
             str(foundation.id),
             foundation.name,
             foundation.description,
@@ -28,12 +31,14 @@ def add_rows(table: Table, foundations: list[Foundation]) -> None:
             f"{foundation.area():.3f}",
             f"{foundation.volume():.3f}",
             f"{foundation.weight():.3f}",
-        )
+        ]
+        for foundation in foundations
+    ]
 
 
 def table_header() -> Table:
     """Set table headers and return table instance."""
-    return Table(
+    table = Table(
         "F. ID",
         "Name",
         "Desc.",
@@ -48,3 +53,7 @@ def table_header() -> Table:
         "Vol.(m³)",
         "Weight (t)",
     )
+
+    table.title = Text("Foundations", style="black on white bold")
+    table.show_lines = True
+    return table

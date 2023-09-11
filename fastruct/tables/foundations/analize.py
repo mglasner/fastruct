@@ -2,13 +2,11 @@
 from typing import Any, Literal
 
 import typer
-from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
 from fastruct.models.foundation import Foundation
 
-console = Console()
 PERCENTAJE_0 = 0
 PERCENTAJE_80 = 80
 PERCENTAJE_100 = 100
@@ -237,26 +235,6 @@ def prepare_row(
     row.extend(extra_data)
 
     return row
-
-
-def display_page(start_idx: int, end_idx: int, all_rows: list[tuple[Any, ...]], table) -> None:
-    """Display a page of rows in the output table.
-
-    This function takes a range of indices and adds the corresponding rows to the table.
-    The table with these rows is then displayed on the console.
-
-    Args:
-        start_idx (int): The starting index for the range of rows to be displayed.
-        end_idx (int): The ending index for the range of rows to be displayed.
-        all_rows (list[tuple[Any, ...]]): The list containing all the rows.
-        table: The table object where the rows will be added.
-
-    Returns:
-        None: The function outputs the table to the console and returns None.
-    """
-    for row in all_rows[start_idx:end_idx]:
-        table.add_row(*row)
-    console.print(table)
 
 
 def foundation_table() -> Table:
