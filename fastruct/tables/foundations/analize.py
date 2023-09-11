@@ -1,9 +1,12 @@
 """Foundations Rich tables configuration module."""
 from typing import Any, Literal
 
+import typer
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
+
+from fastruct.models.foundation import Foundation
 
 console = Console()
 PERCENTAJE_0 = 0
@@ -15,23 +18,93 @@ LIMIT_STRESS_COLOR = "yellow"
 MIN_PERCENTAJE_COLOR = "blue"
 
 
-def analize_table(title: str, method: Literal["bi-directional", "one-direction", "compare"], loads: bool) -> Table:
+def analize_table(
+    foundation: Foundation,
+    limit,
+    method: Literal["bi-directional", "one-direction", "compare"],
+    order: str,
+    color,
+    show_loads,
+    stresses: list[float | None]
+    | list[tuple[float | None, float | None]]
+    | list[tuple[float | None, float | None, float | None]],
+    percentajes: list[float] | list[tuple[float, float]] | list[tuple[float, float, float]],
+    max_stress,
+) -> tuple[Table, list[Any]]:
     """Table configuration."""
-    columns = ["#", "NAME"]
-    if loads:
-        columns.extend(["P", "Vx", "Vy", "Mx", "My"])
+    table = table_header(foundation, method, show_loads)
+    rows = generate_rows(
+        foundation,
+        limit,
+        method,
+        order,
+        color,
+        show_loads,
+        stresses,
+        percentajes,
+        max_stress,
+    )
+
+    return table, rows
+
+
+def generate_rows(
+    foundation: Foundation,
+    limit,
+    method,
+    order: str,
+    color,
+    show_loads,
+    stresses: list[float | None]
+    | list[tuple[float | None, float | None]]
+    | list[tuple[float | None, float | None, float | None]],
+    percentajes: list[float] | list[tuple[float, float]] | list[tuple[float, float, float]],
+    max_stress,
+) -> list[Any]:
+    """Add data to table."""
+    seal_loads = foundation.seal_loads
+    if order is not None:
+        if order not in ("stress", "percentaje"):
+            typer.secho("Order must be 'stress' or 'percentaje'", fg=typer.colors.RED)
+            raise typer.Exit()
+
+        data = list(zip(foundation.seal_loads, stresses, percentajes, strict=True))
+        if order == "stress":
+            # Order desc by 'stress'
+            data.sort(key=lambda x: (x[1] is None, x[1]), reverse=True)
+        else:
+            # Order asc by 'percentaje'
+            data.sort(key=lambda x: x[2])
+
+        seal_loads, stresses, percentajes = zip(*data, strict=True)
+
+    all_rows = []
+    for i, (seal_load, stress, percentaje) in enumerate(zip(seal_loads, stresses, percentajes, strict=True), start=1):
+        row = prepare_row(i, seal_load, stress, percentaje, method, max_stress, limit, show_loads, color)  # type: ignore
+        all_rows.append(row)
+
+    return all_rows
+
+
+def table_header(
+    foundation: Foundation, method: Literal["bi-directional", "one-direction", "compare"], show_loads: bool
+) -> Table:
+    """Set table headers and return table instance."""
+    headers = ["#", "NAME"]
+    if show_loads:
+        headers.extend(["P", "Vx", "Vy", "Mx", "My"])
 
     if method == "bi-direction":
-        columns.extend(["σ (ton/m²)", "%"])
+        headers.extend(["σ (ton/m²)", "%"])
 
     elif method == "one-direction":
-        columns.extend(["σx max", r"%x", "σy max", r"%y"])
+        headers.extend(["σx max", r"%x", "σy max", r"%y"])
 
     elif method == "compare":
-        columns.extend(["σ (ton/m²)", "%", "σx max", r"%x", "σy max", r"%y"])
+        headers.extend(["σ (ton/m²)", "%", "σx max", r"%x", "σy max", r"%y"])
 
-    table = Table(*columns)
-    table.title = Text(title, style="black on white bold")
+    table = Table(*headers)
+    table.title = Text(str(foundation), style="black on white bold")
     table.show_lines = True
 
     return table

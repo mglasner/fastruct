@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import sqlalchemy as sa
 import typer
 from rich.console import Console
-from rich.table import Table
 
 from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
@@ -17,7 +16,9 @@ from fastruct.models.seal_load import SealLoad
 from fastruct.models.user_load import UserLoad
 from fastruct.plotting.foundations.plot import close_event, draw_foundation
 from fastruct.queries.loads import is_load_duplicated
-from fastruct.tables.foundations.tables import analize_table, display_page, foundation_table, prepare_row
+from fastruct.tables.foundations.analize import analize_table, display_page
+from fastruct.tables.foundations.get import get_table
+from fastruct.tables.foundations.get_loads import get_loads_table
 
 from .utils import get_max_value, stresses_and_percentajes_by_method
 
@@ -82,7 +83,6 @@ def add(
 @app.command()
 def get(id: Optional[int] = None):
     """Get all foundations from database or the foundation with the provided id."""
-    description_length = 29
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
         if id is None:
@@ -94,30 +94,7 @@ def get(id: Optional[int] = None):
             check_not_none(foundation, "foundation", str(id), active_project)
             foundations = [foundation]
 
-        table = foundation_table()
-        for foundation in foundations:
-            description = None
-            if foundation.description is not None:
-                description = (
-                    foundation.description
-                    if len(foundation.description) <= description_length
-                    else f"{foundation.description[:description_length]}..."
-                )
-            table.add_row(
-                str(foundation.id),
-                foundation.name,
-                description,
-                str(foundation.lx),
-                str(foundation.ly),
-                str(foundation.lz),
-                str(foundation.depth),
-                str(foundation.ex),
-                str(foundation.ey),
-                f"{foundation.col_x:.1f}x{foundation.col_y:.1f}",
-                f"{foundation.area():.3f}",
-                f"{foundation.volume():.3f}",
-                f"{foundation.weight():.3f}",
-            )
+        table = get_table(foundations)
     console.print(table)
 
 
@@ -298,25 +275,7 @@ def get_loads(foundation_id: int = typer.Argument(help="Foundation ID")):
             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
         )
         check_not_none(foundation, "foundation", str(foundation_id), active_project)
-        table = Table("#", "ID", "NAME", "P", "Vx", "Vy", "Mx", "My")
-        table.title = str(foundation)
-        table.caption = "(value): loads at the f. CG and f. seal level"
-        table.show_lines = True
-
-        for i, (user_load, load) in enumerate(zip(foundation.user_loads, foundation.seal_loads, strict=True), start=1):
-            row = [
-                f"{i:02}",
-                f"{user_load.id}",
-                user_load.name,
-                f"{user_load.p :.1f} ({load.p:.1f})",
-                f"{user_load.vx:.1f} ({load.vx:.1f})",
-                f"{user_load.vy:.1f} ({load.vy:.1f})",
-                f"{user_load.mx:.1f} ({load.mx:.1f})",
-                f"{user_load.my:.1f} ({load.my:.1f})",
-            ]
-
-            table.add_row(*row)
-
+        table = get_loads_table(foundation)
     console.print(table)
 
 
@@ -341,7 +300,7 @@ def analyze_stresses_and_lifts(
     foundation_id: int,
     limit: float = typer.Option(None, help="Stress limit. Results exceeding this value will be highlighted in yellow"),
     method: str = typer.Option("bi-direction", help="bi-direction/one-direction/compare"),
-    order: str = typer.Option(None, help="stress/percentaje"),
+    order: str = typer.Option("percentaje", help="stress/percentaje"),
     color: bool = typer.Option(True, help="Use colors on results table", rich_help_panel="Format"),
     show_loads: bool = typer.Option(True, help="Show the loads applied over foundation", rich_help_panel="Format"),
     rows_per_page: int = typer.Option(10, help="Records per page", rich_help_panel="Format"),
@@ -356,40 +315,18 @@ def analyze_stresses_and_lifts(
 
         stresses, percentajes = stresses_and_percentajes_by_method(foundation, method)  # type: ignore
         max_stress = get_max_value(stresses)
+        table, rows = analize_table(
+            foundation, limit, method, order, color, show_loads, stresses, percentajes, max_stress
+        )
 
-        seal_loads = foundation.seal_loads
-        if order is not None:
-            if order not in ("stress", "percentaje"):
-                typer.secho("Order must be 'stress' or 'percentaje'", fg=typer.colors.RED)
-                raise typer.Exit()
-
-            data = list(zip(foundation.loads, stresses, percentajes, strict=True))
-            if order == "stress":
-                # Order desc by 'stress'
-                data.sort(key=lambda x: (x[1] is None, x[1]), reverse=True)
-            else:
-                # Order asc by 'percentaje'
-                data.sort(key=lambda x: x[2])
-
-            seal_loads, stresses, percentajes = zip(*data, strict=True)
-
-        all_rows = []
-        for i, (seal_load, stress, percentaje) in enumerate(
-            zip(seal_loads, stresses, percentajes, strict=True), start=1
-        ):
-            row = prepare_row(i, seal_load, stress, percentaje, method, max_stress, limit, show_loads, color)  # type: ignore
-            all_rows.append(row)
-
-        table = analize_table(str(foundation), method, show_loads)  # type: ignore
-        if rows_per_page is None:
-            rows_per_page = 20
-
-        num_pages = len(all_rows) // rows_per_page + (1 if len(all_rows) % rows_per_page else 0)
+        num_pages = len(rows) // rows_per_page + (1 if len(rows) % rows_per_page else 0)
         for page in range(num_pages):
             start_idx = page * rows_per_page
             end_idx = start_idx + rows_per_page
-            table = analize_table(str(foundation), method, show_loads)  # type: ignore
-            display_page(start_idx, end_idx, all_rows, table)
+            table, rows = analize_table(
+                foundation, limit, method, order, color, show_loads, stresses, percentajes, max_stress
+            )
+            display_page(start_idx, end_idx, rows, table)
             if page < num_pages - 1:
                 user_input = input(f"Page {page+1}/{num_pages}, press Enter to watch next results, 'q' to quit... ")
                 if user_input == "q":
@@ -411,7 +348,7 @@ def analyze_stresses_and_lifts(
 
 
 @app.command()
-def plot(foundation_id: int) -> None:
+def plot(foundation_id: int = typer.Argument(help="Foundation ID")) -> None:
     """Plot foundation."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
