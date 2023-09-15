@@ -46,7 +46,7 @@ def add(
     name: str = typer.Option(None, help="Optional name for the foundation"),
     description: str = typer.Option(None, help="Optional description for the foundation"),
 ) -> None:
-    """Add foundation to active project."""
+    """Add foundation."""
     if depth is None:
         depth = lz
 
@@ -74,9 +74,10 @@ def add(
 
 @app.command()
 def get(
-    id: Optional[int] = None, rows_per_page: int = typer.Option(10, help="Records per page", rich_help_panel="Format")
-):
-    """Get all foundations from database or the foundation with the provided id."""
+    id: int = typer.Option(None, help="ID of the foundation to retrieve. Leave empty to fetch all foundations."),
+    rows_per_page: int = typer.Option(10, help="Number of records displayed per page", rich_help_panel="Format"),
+) -> None:
+    """Retrieve a single foundation by its ID, or all foundations from the database if no ID is provided."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
         if id is None:
@@ -94,35 +95,25 @@ def get(
 
 @app.command()
 def update(
-    id: int,
-    lx: float,
-    ly: float,
-    lz: float,
-    depth: float,
-    ex: float,
-    ey: float,
-    colx: float,
-    coly: float,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-):
-    """Update a foundation in the database.\n
-
-    Args:\n
-        id (int): The ID of the foundation to update.\n
-        lx (float): Width of the foundation in the x direction.\n
-        ly (float): Width of the foundation in the y direction.\n
-        lz (float): Height of the foundation in the z direction.\n
-        depth (float): Depth of the foundation from the ground level to the seal of the foundation.\n
-        ex (float): Eccentricity in the x direction with respect to the center of gravity of the\n
-                    foundation. Defaults to 0.\n
-        ey (float): Eccentricity in the y direction with respect to the center of gravity of the\n
-                    foundation. Defaults to 0.\n
-        colx (float): Width of the column over the foundation in x direction.\n
-        coly (float): Width of the column over the foundation in y direction.\n
-        name (str | None): Optional name for the foundation. Defaults to None. Max characters 32.\n
-        description (str | None): Optional description for the foundation. Defaults to None. Max characters 128.\n
-    """
+    id: int = typer.Argument(help="Foundation ID"),
+    lx: float = typer.Argument(help="Length of the foundation along the X-axis"),
+    ly: float = typer.Argument(help="Length of the foundation along the Y-axis"),
+    lz: float = typer.Argument(help="Length of the foundation along the Z-axis"),
+    depth: float = typer.Argument(
+        help="Total depth of the foundation, measured from ground level to the foundation seal"
+    ),
+    ex: float = typer.Argument(
+        help="Eccentricity between the CG of the wall/column and the foundation CG along the X-axis"
+    ),
+    ey: float = typer.Argument(
+        help="Eccentricity between the CG of the wall/column and the foundation CG along the Y-axis"
+    ),
+    colx: float = typer.Argument(help="Dimension of the wall/column above the foundation along the X-axis"),
+    coly: float = typer.Argument(help="Dimension of the wall/column above the foundation along the Y-axis"),
+    name: str = typer.Option(None, help="Optional name for the foundation"),
+    description: str = typer.Option(None, help="Optional description for the foundation"),
+) -> None:
+    """Update foundation."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
         foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
@@ -152,62 +143,42 @@ def update(
 
 
 @app.command()
-def delete(foundation_id: int) -> None:
-    """Delete a foundation from database.\n
-
-    This command deletes the foundation record with the specified ID from the database.\n
-
-    Args:\n
-        foundation_id (int): The ID of the foundation to delete.
-    """
+def delete(id: int = typer.Argument(help="Foundation ID")) -> None:
+    """Delete foundation."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
-        foundation = (
-            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
-        )
-        check_not_none(foundation, "foundation", str(foundation_id), active_project)
+        foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
+        check_not_none(foundation, "foundation", str(id), active_project)
 
         session.delete(foundation)
-        typer.secho(
-            f"Foundation with ID {foundation_id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN
-        )
+        typer.secho(f"Foundation with ID {id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN)
 
 
 @app.command(name="add-load", context_settings={"ignore_unknown_options": True})
 def add_load(
-    foundation_id: int = typer.Argument(help="Foundation ID"),
-    p: float = typer.Argument(help="Axial Load"),
-    vx: float = typer.Argument(help="Shear Load in x-direction"),
-    vy: float = typer.Argument(help="Shear Load in x-direction"),
-    mx: float = typer.Argument(help="Moment over x-axis"),
-    my: float = typer.Argument(help="Moment over y-axis"),
-    name: Optional[str] = typer.Option(None, help="Optional Name for load"),
+    id: int = typer.Argument(help="ID of the foundation to which the load will be added"),
+    p: float = typer.Argument(help="Magnitude of the axial load"),
+    vx: float = typer.Argument(help="Magnitude of the shear load in the X direction"),
+    vy: float = typer.Argument(help="Magnitude of the shear load in the Y direction"),
+    mx: float = typer.Argument(help="Magnitude of the moment about the X axis"),
+    my: float = typer.Argument(help="Magnitude of the moment about the Y axis"),
+    name: Optional[str] = typer.Option(None, help="Optional name for the load"),
 ) -> None:
-    """Add load to foundation."""
-    user_load_dict = {
-        "foundation_id": foundation_id,
-        "name": name,
-        "p": p,
-        "vx": vx,
-        "vy": vy,
-        "mx": mx,
-        "my": my,
-    }
+    """Add a load to a foundation identified by its ID."""
+    user_load_dict = {"foundation_id": id, "name": name, "p": p, "vx": vx, "vy": vy, "mx": mx, "my": my}
 
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
         if not is_load_duplicated(session, user_load_dict):
-            foundation = (
-                session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
-            )
-            check_not_none(foundation, "foundation", str(foundation_id), active_project)
+            foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
+            check_not_none(foundation, "foundation", str(id), active_project)
 
             user_load = UserLoad(**user_load_dict)
             session.add(user_load)
             session.flush()
 
             load = SealLoad(
-                foundation_id=foundation_id,
+                foundation_id=id,
                 user_load_id=user_load.id,
                 p=p + foundation.weight() + foundation.ground_weight(),
                 vx=vx,
@@ -218,9 +189,7 @@ def add_load(
             session.add(load)
             typer.secho(f"Load added succesfuly ({active_project.code})", fg=typer.colors.GREEN)
         else:
-            typer.secho(
-                f"Load already exists for foundation (id: {foundation_id}) ({active_project.code})", fg=typer.colors.RED
-            )
+            typer.secho(f"Load already exists for foundation (id: {id}) ({active_project.code})", fg=typer.colors.RED)
 
 
 @app.command(name="add-loads-from-csv")
@@ -262,53 +231,53 @@ def add_loads_from_csv(path: Path = typer.Argument(help="Path to csv file")) -> 
 
 @app.command(name="get-loads")
 def get_loads(
-    foundation_id: int = typer.Argument(help="Foundation ID"),
-    rows_per_page: int = typer.Option(10, help="Records per page", rich_help_panel="Format"),
+    id: int = typer.Argument(help="Foundation ID"),
+    rows_per_page: int = typer.Option(10, help="Number of records displayed per page", rich_help_panel="Format"),
 ):
     """Display loads details for the requested foundation."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
-        foundation = (
-            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
-        )
-        check_not_none(foundation, "foundation", str(foundation_id), active_project)
+        foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
+        check_not_none(foundation, "foundation", str(id), active_project)
         table, rows = get_loads_table(foundation)
         paginate_table(table, rows, rows_per_page, get_loads_table, foundation)
 
 
 @app.command(name="delete-load")
-def delete_load(load_id: int = typer.Argument(help="ID of the load to be deleted.")) -> None:
+def delete_load(id: int = typer.Argument(help="Load ID")) -> None:
     """Delete foundation load."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
         user_load = (
             session.query(UserLoad)
             .join(Foundation)
-            .filter(sa.and_(UserLoad.id == load_id, Foundation.project_id == active_project.id))
+            .filter(sa.and_(UserLoad.id == id, Foundation.project_id == active_project.id))
             .first()
         )
-        check_not_none(user_load, "load", str(load_id), active_project)
+        check_not_none(user_load, "load", str(id), active_project)
         session.delete(user_load)
-        typer.secho(f"Load with ID {load_id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN)
+        typer.secho(f"Load with ID {id} has been deleted ({active_project.code}).", fg=typer.colors.GREEN)
 
 
-@app.command(name="analize")
+@app.command(name="analyze")
 def analyze_stresses_and_lifts(
-    foundation_id: int,
-    limit: float = typer.Option(None, help="Stress limit. Results exceeding this value will be highlighted in yellow"),
-    method: str = typer.Option("bi-direction", help="bi-direction/one-direction/compare"),
-    order: str = typer.Option("percentaje", help="stress/percentaje"),
-    color: bool = typer.Option(True, help="Use colors on results table", rich_help_panel="Format"),
-    show_loads: bool = typer.Option(True, help="Show the loads applied over foundation", rich_help_panel="Format"),
-    rows_per_page: int = typer.Option(10, help="Records per page", rich_help_panel="Format"),
+    id: int = typer.Argument(help="Foundation ID"),
+    limit: float = typer.Option(
+        None, help="Stress limit for highlighting. Results exceeding this limit will be highlighted in yellow."
+    ),
+    method: str = typer.Option(
+        "bi-direction", help="Method for analysis. Options are 'bi-direction', 'one-direction', or 'compare'."
+    ),
+    order: str = typer.Option("percentage", help="Order results by 'stress' or 'percentage' of support."),
+    color: bool = typer.Option(True, help="Whether to use colors in the results table."),
+    show_loads: bool = typer.Option(True, help="Whether to display the loads applied to the foundation."),
+    rows_per_page: int = typer.Option(10, help="Number of records displayed per page", rich_help_panel="Format"),
 ) -> None:
-    """Analyze maximum stress and support percentaje."""
+    """Analyze maximum stress and percentage of support for a foundation."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
-        foundation = (
-            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
-        )
-        check_not_none(foundation, "foundation", str(foundation_id), active_project)
+        foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
+        check_not_none(foundation, "foundation", str(id), active_project)
 
         stresses, percentajes = stresses_and_percentajes_by_method(foundation, method)  # type: ignore
         max_stress = get_max_value(stresses)
@@ -332,30 +301,25 @@ def analyze_stresses_and_lifts(
         )
 
 
+@app.command()
+def plot(id: int = typer.Argument(help="Foundation ID")) -> None:
+    """Plot foundation."""
+    with session_scope() as session:
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
+        check_not_none(foundation, "foundation", str(id), active_project)
+        plt.connect("key_press_event", close_event)
+        typer.secho("Press 'q' to close foundation plot.", fg=typer.colors.GREEN)
+        draw_foundation(foundation)
+
+
 # @app.command()
-# def flexural_design(foundation_id: int) -> None:
+# def flexural_design(id: int = typer.Argument(help="Foundation ID")) -> None:
 #     """Flexural design of foundation."""
 #     from foundations.design import get_ultimate_moments
 
 #     with session_scope() as session:
 #         active_project = session.query(Project).filter_by(is_active=True).first()
-#         foundation = (
-#             session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
-#         )
-#         check_not_none(foundation, "foundation", str(foundation_id), active_project)
+#         foundation = session.query(Foundation).filter_by(id=id).filter_by(project_id=active_project.id).first()
+#         check_not_none(foundation, "foundation", str(id), active_project)
 #         print(get_ultimate_moments(foundation))
-
-
-@app.command()
-def plot(foundation_id: int = typer.Argument(help="Foundation ID")) -> None:
-    """Plot foundation."""
-    with session_scope() as session:
-        active_project = session.query(Project).filter_by(is_active=True).first()
-        foundation = (
-            session.query(Foundation).filter_by(id=foundation_id).filter_by(project_id=active_project.id).first()
-        )
-        check_not_none(foundation, "foundation", str(foundation_id), active_project)
-
-        plt.connect("key_press_event", close_event)
-        typer.secho("Press 'q' to close foundation plot.", fg=typer.colors.GREEN)
-        draw_foundation(foundation)
