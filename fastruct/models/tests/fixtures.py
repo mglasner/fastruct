@@ -1,8 +1,11 @@
 """Pytest fixtures for model tests."""
+import json
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from ..beam import Beam
 from ..db import BaseModel
 from ..foundation import Foundation
 from ..project import Project
@@ -61,10 +64,30 @@ def foundation1(session: Session, project1: Project) -> Foundation:
         col_x=0.15,
         col_y=0.15,
         name="my foundation",
-        description="my description",
+        description="my foundation description",
         project_id=project1.id,
     )
     session.add(foundation)
     session.commit()
 
     return foundation
+
+
+@pytest.fixture
+def beam1(session: Session, project1: Project) -> Beam:
+    """Beam instance.
+
+    Returns:
+        Beam: An instance of Foundation.
+    """
+    beam = Beam(
+        name="my beam",
+        description="my beam description",
+        project_id=project1.id,
+        length=1,
+        coordinates=json.dumps([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]),
+    )
+    session.add(beam)
+    session.commit()
+
+    return beam

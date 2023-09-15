@@ -15,7 +15,6 @@ def config_database():
     global _session_local  # noqa: PLW0603
     current_file_path = Path(__file__).resolve()
     installation_directory = current_file_path.parent
-    # database_url = f"sqlite:///{Path.cwd() / 'fundaciones.db'}"
     database_url = f"sqlite:///{installation_directory / 'fastructdb.db'}"
     engine = create_engine(database_url)
     _session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)

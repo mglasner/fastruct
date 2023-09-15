@@ -21,7 +21,7 @@ def test_create_foundation(session: Session, foundation1: Foundation):
     assert foundation.lz == foundation1.lz == 1
     assert foundation.depth == foundation1.depth == 1
     assert foundation.name == foundation1.name == "my foundation"
-    assert foundation.description == foundation1.description == "my description"
+    assert foundation.description == foundation1.description == "my foundation description"
     assert foundation.area() == foundation1.area() == 1
     assert foundation.column_area() == foundation1.column_area() == 0.0225
     assert foundation.volume() == foundation1.volume() == 1

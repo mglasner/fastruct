@@ -20,6 +20,8 @@ class Project(BaseModel):
         cascade="all, delete", back_populates="project"
     )  # noqa: F821
 
+    beams: so.Mapped[list["Beam"]] = so.relationship(cascade="all, delete", back_populates="project")  # noqa: F821
+
     def __str__(self) -> str:
         """Return a string representation of project.
 
