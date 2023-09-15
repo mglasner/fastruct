@@ -29,33 +29,24 @@ console = Console()
 
 @app.command()
 def add(
-    lx: float,
-    ly: float,
-    lz: float,
-    depth: Optional[float] = None,
-    ex: Optional[float] = 0,
-    ey: Optional[float] = 0,
-    colx: Optional[float] = 0,
-    coly: Optional[float] = 0,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
+    lx: float = typer.Argument(help="Length of the foundation along the X-axis"),
+    ly: float = typer.Argument(help="Length of the foundation along the Y-axis"),
+    lz: float = typer.Argument(help="Length of the foundation along the Z-axis"),
+    depth: float = typer.Option(
+        None, help="Total depth of the foundation, measured from ground level to the foundation seal"
+    ),
+    ex: float = typer.Option(
+        0, help="Eccentricity between the CG of the wall/column and the foundation CG along the X-axis"
+    ),
+    ey: float = typer.Option(
+        0, help="Eccentricity between the CG of the wall/column and the foundation CG along the Y-axis"
+    ),
+    colx: float = typer.Option(0, help="Dimension of the wall/column above the foundation along the X-axis"),
+    coly: float = typer.Option(0, help="Dimension of the wall/column above the foundation along the Y-axis"),
+    name: str = typer.Option(None, help="Optional name for the foundation"),
+    description: str = typer.Option(None, help="Optional description for the foundation"),
 ) -> None:
-    """Add foundation to active project.
-
-    Args:\n
-        lx (float): Width of the foundation in the x direction.\n
-        ly (float): Width of the foundation in the y direction.\n
-        lz (float): Height of the foundation in the z direction.\n
-        depth (float | None): Depth of the foundation from the ground level to the seal of the foundation.\n
-        ex (float | None, optional): Eccentricity in the x direction with respect to the center of gravity of the\n
-                                     foundation. Defaults to 0.\n
-        ey (float | None, optional): Eccentricity in the y direction with respect to the center of gravity of the\n
-                                     foundation. Defaults to 0.\n
-        colx (float | None): Width of the column over the foundation in x direction.\n
-        coly (float | None): Width of the column over the foundation in y direction.\n
-        name (str | None): Optional name for the foundation. Defaults to None. Max characters 32.\n
-        description (str | None): Optional description for the foundation. Defaults to None. Max characters 128.\n
-    """
+    """Add foundation to active project."""
     if depth is None:
         depth = lz
 
