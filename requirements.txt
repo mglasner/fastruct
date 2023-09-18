@@ -10,22 +10,49 @@ colorama==0.4.6
     # via
     #   click
     #   typer
+contourpy==1.1.1
+    # via matplotlib
+cycler==0.11.0
+    # via matplotlib
+fonttools==4.42.1
+    # via matplotlib
 greenlet==2.0.2
     # via sqlalchemy
+kiwisolver==1.4.5
+    # via matplotlib
 markdown-it-py==3.0.0
     # via rich
+matplotlib==3.8.0
+    # via fastruct (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
+numpy==1.26.0
+    # via
+    #   contourpy
+    #   matplotlib
+    #   shapely
+packaging==23.1
+    # via matplotlib
+pillow==10.0.1
+    # via matplotlib
 pygments==2.16.1
     # via rich
+pyparsing==3.1.1
+    # via matplotlib
+python-dateutil==2.8.2
+    # via matplotlib
 rich==13.5.2
     # via typer
+shapely==2.0.1
+    # via fastruct (pyproject.toml)
 shellingham==1.5.3
     # via typer
+six==1.16.0
+    # via python-dateutil
 sqlalchemy==2.0.20
-    # via fundaciones (pyproject.toml)
+    # via fastruct (pyproject.toml)
 typer[all]==0.9.0
-    # via fundaciones (pyproject.toml)
+    # via fastruct (pyproject.toml)
 typing-extensions==4.7.1
     # via
     #   sqlalchemy

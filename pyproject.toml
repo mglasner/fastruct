@@ -24,7 +24,9 @@ license = {file = "LICENSE"}
 urls = {source = "https://github.com/mglasner/fastruct"}
 dependencies = [
     "typer[all]==0.9.0",
-    "sqlalchemy==2.0.20"
+    "sqlalchemy==2.0.20",
+    "matplotlib==3.8.0",
+    "shapely==2.0.1"
 ]
 scripts = { fastruct = "fastruct.__main__:main" }
 classifiers = [
