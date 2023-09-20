@@ -29,11 +29,11 @@ class Beam(BaseModel):
 
     __table_args__ = (sa.CheckConstraint("length > 0", name="check_length_positive"),)
 
-    def set_coordinates(self, coords_list: list[list[float]]) -> None:
+    def set_coordinates(self, coords_list: list[tuple[float, float]]) -> None:
         """Set coordinates."""
         self.coordinates = json.dumps(coords_list)
 
-    def get_coordinates(self) -> list[list[float]]:
+    def get_coordinates(self) -> list[tuple[float, float]]:
         """Get coordinates."""
         return json.loads(self.coordinates)
 
