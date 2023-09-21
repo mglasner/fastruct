@@ -14,7 +14,8 @@ from fastruct.models.foundation import Foundation
 from fastruct.models.project import Project
 from fastruct.models.seal_load import SealLoad
 from fastruct.models.user_load import UserLoad
-from fastruct.plotting.foundations.plot import close_event, draw_foundation
+from fastruct.plotting.foundations.plot import draw_foundation
+from fastruct.plotting.utils import close_event
 from fastruct.queries.loads import is_load_duplicated
 from fastruct.tables.foundations.analize import analize_table
 from fastruct.tables.foundations.get import get_table

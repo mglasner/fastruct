@@ -15,8 +15,9 @@ class Beam(BaseModel):
     id: so.Mapped[int] = so.mapped_column(primary_key=True, autoincrement=True)
     name: so.Mapped[str | None] = so.mapped_column(sa.String(32), index=True)
     description: so.Mapped[str | None] = so.mapped_column(sa.String(128))
-    length: so.Mapped[float] = so.mapped_column(sa.Float)
+    length: so.Mapped[float | None] = so.mapped_column(sa.Float)
     coordinates: so.Mapped[str] = so.mapped_column(sa.String)
+    reinforced_bars: so.Mapped[str | None] = so.mapped_column(sa.String)
 
     # foreign keys
     project_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("projects.id", ondelete="CASCADE"))
@@ -36,6 +37,16 @@ class Beam(BaseModel):
     def get_coordinates(self) -> list[tuple[float, float]]:
         """Get coordinates."""
         return json.loads(self.coordinates)
+
+    def set_reinforced_bars(self, bars_list: list[tuple[float, float, float, float, float]]) -> None:
+        """Set reinforced bars."""
+        self.reinforced_bars = json.dumps(bars_list)
+
+    def get_reinforced_bars(self) -> list[tuple[float, float, float, float, float]]:
+        """Get reinforced bars."""
+        if self.reinforced_bars is None:
+            return []
+        return json.loads(self.reinforced_bars)
 
     def area(self) -> float:
         """Calculate and return the beam's cross-sectional area using the Shoelace formula.

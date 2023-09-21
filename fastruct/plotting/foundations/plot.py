@@ -72,9 +72,3 @@ def add_surface(axis, x: np.ndarray, y: np.ndarray, z_value: float, plane_orient
         axis.plot_surface(x, z, y, alpha=0.5, facecolor=surface_color, edgecolor=edge_color, zorder=1)
     else:
         axis.plot_surface(x, y, z, alpha=0.5, facecolor=surface_color, edgecolor=edge_color, zorder=1)
-
-
-def close_event(event):
-    """Close plot when the 'q' key is pressed."""
-    if event.key == "q":
-        plt.close(event.canvas.figure)
