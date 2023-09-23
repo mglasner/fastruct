@@ -4,12 +4,12 @@ import numpy as np
 import typer
 from shapely.geometry import Point, Polygon
 
-from fastruct.analysis.interaction.interaction_2d import get_curve2d
+from fastruct.analysis.interaction.interaction_2d import get_curve2d, rotate_coordinates
 from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
 from fastruct.models.beam import Beam
 from fastruct.models.project import Project
-from fastruct.plotting.curve2d import plot_curve2d
+from fastruct.plotting.curve2d import plot_curve2d, plot_curve3d
 from fastruct.plotting.utils import close_event
 
 app = typer.Typer()
@@ -76,6 +76,43 @@ def plot2d(id: int = typer.Argument(help="Beam ID")) -> None:
         beam = session.query(Beam).filter_by(id=id).filter_by(project_id=active_project.id).first()
         check_not_none(beam, "beam", str(id), active_project)
         plt.connect("key_press_event", close_event)
-        typer.secho("Press 'q' to close foundation plot.", fg=typer.colors.GREEN)
-        mp, reduction_factors = get_curve2d(np.array(beam.get_coordinates()), np.array(beam.get_reinforced_bars()))
-        plot_curve2d(mp, np.array(beam.get_coordinates()), np.array(beam.get_reinforced_bars()))
+        typer.secho("Press 'q' to close plot.", fg=typer.colors.GREEN)
+        mp_nominal, reduction_factors = get_curve2d(
+            np.array(beam.get_coordinates()), np.array(beam.get_reinforced_bars())
+        )
+        mp_design = mp_nominal * reduction_factors
+        plot_curve2d(mp_design, np.array(beam.get_coordinates()), np.array(beam.get_reinforced_bars()))
+
+
+@app.command()
+def plot3d(id: int = typer.Argument(help="Beam ID")) -> None:
+    """Plot MP interaction 3d curve."""
+    with session_scope() as session:
+        active_project = session.query(Project).filter_by(is_active=True).first()
+        beam = session.query(Beam).filter_by(id=id).filter_by(project_id=active_project.id).first()
+        check_not_none(beam, "beam", str(id), active_project)
+        plt.connect("key_press_event", close_event)
+        typer.secho("Press 'q' to close plot.", fg=typer.colors.GREEN)
+        mp_design_list = []
+        original_coordinates = np.array(beam.get_coordinates())
+        original_reinforced_bars = np.array(beam.get_reinforced_bars())
+        original_bars_coordinates = original_reinforced_bars[:, :2]
+        n = 64  # Número de ángulos
+        angles = np.linspace(0, 360, n, endpoint=False)
+        for angle in angles:
+            coordinates = rotate_coordinates(original_coordinates, angle, pivot=None, delta=None)
+
+            bar_coordinates = rotate_coordinates(original_bars_coordinates, angle, pivot=None, delta=None)
+            reinforced_bars = np.hstack((bar_coordinates, original_reinforced_bars[:, 2:]))
+
+            mp_nominal, reduction_factors = get_curve2d(coordinates, reinforced_bars)
+            mp_design = mp_nominal * reduction_factors
+            m, p = mp_design[:, 0], mp_design[:, 1]
+
+            angle_rad = np.radians(angle)
+            mx = m * np.cos(angle_rad)
+            my = m * np.sin(angle_rad)
+
+            mp_design_list.append([mx, my, p])
+
+        plot_curve3d(mp_design_list, original_coordinates, original_reinforced_bars)

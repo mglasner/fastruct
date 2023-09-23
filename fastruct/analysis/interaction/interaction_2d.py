@@ -1,6 +1,5 @@
 """2D MP interaction curve."""
 import numpy as np
-from scipy.interpolate import interp1d
 from shapely.geometry import Polygon
 
 from fastruct.common.decorators import timer
@@ -38,9 +37,24 @@ def get_curve2d(coordinates: np.ndarray, reinforced_bars: np.ndarray) -> tuple[n
 
     mp_neg, reduction_factors_neg = curve2d(rotated_section, rotated_reinforced_bars, 2500, 0.003, is_neg=True)
 
-    reduction_factors = np.append(
-        np.append(np.append(np.append(0.65, reduction_factors_pos), 0.9), reduction_factors_neg[::-1]), 0.65
-    )
+    interpolated_factors_1 = interpolate_values(0.65, reduction_factors_pos[0], 10)
+    interpolated_factors_2 = interpolate_values(reduction_factors_pos[-1], 0.9, 20)
+    interpolated_factors_3 = interpolate_values(0.9, reduction_factors_neg[-1], 20)
+    interpolated_factors_4 = interpolate_values(reduction_factors_neg[0], 0.65, 10)
+
+    reduction_factors_list: list[np.ndarray] = [
+        np.array([0.65]),
+        interpolated_factors_1,
+        reduction_factors_pos,
+        interpolated_factors_2,
+        np.array([0.9]),
+        interpolated_factors_3,
+        reduction_factors_neg[::-1],
+        interpolated_factors_4,
+        np.array([0.65]),
+    ]
+
+    reduction_factors = np.concatenate(reduction_factors_list)
     reduction_factors = reduction_factors[:, np.newaxis]
 
     interpolation1 = add_intermediate_points(mp_max, mp_pos[0], 10)
@@ -59,6 +73,11 @@ def add_intermediate_points(start_point: np.ndarray, end_point: np.ndarray, n: i
     """Add n evenly spaced intermediate points between start_point and end_point."""
     t_values = np.linspace(0, 1, n + 2)[1:-1]
     return np.array([(1 - t) * start_point + t * end_point for t in t_values])
+
+
+def interpolate_values(start: float, end: float, n: int) -> np.ndarray:
+    """Linearly interpolate n points between start and end values."""
+    return np.linspace(start, end, n + 2)[1:-1]
 
 
 @timer
