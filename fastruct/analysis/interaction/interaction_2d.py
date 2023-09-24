@@ -2,10 +2,7 @@
 import numpy as np
 from shapely.geometry import Polygon
 
-from fastruct.common.decorators import timer
 
-
-@timer
 def get_curve2d(coordinates: np.ndarray, reinforced_bars: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Compute the 2D interaction curve for axial force vs. bending moment.
 
@@ -80,7 +77,6 @@ def interpolate_values(start: float, end: float, n: int) -> np.ndarray:
     return np.linspace(start, end, n + 2)[1:-1]
 
 
-@timer
 def curve2d(
     section: Polygon,
     reinforced_bars: np.ndarray,
@@ -150,7 +146,6 @@ def curve2d(
     return np.column_stack((-1 * nominal_moments if is_neg else nominal_moments, axial_forces)), reduction_factors
 
 
-@timer
 def max_tension(
     section: Polygon, y_bars: np.ndarray, bars_area: np.ndarray, bars_yield_stress: np.ndarray
 ) -> np.ndarray:
@@ -171,7 +166,6 @@ def max_tension(
     return np.array([mmin, pmin])
 
 
-@timer
 def max_compresion(section: Polygon, bars_area: np.ndarray, bars_yield_stress: np.ndarray, fc: float) -> np.ndarray:
     """Computes the maximum compressive force for a reinforced concrete section according to ACI318S-08.
 
@@ -211,7 +205,6 @@ def beta1(fc: float):
     return 0.85 if fc <= fc_limit else max(0.85 - 0.05 / 700 * (fc - 2800), 0.65)
 
 
-@timer
 def bars_force(area: np.ndarray, yield_stress: np.ndarray, elasticity_module: np.ndarray, es: np.ndarray) -> np.ndarray:
     """Computes the force in reinforcing bars based on their material properties and strain, in a batch-wise manner.
 
@@ -234,7 +227,6 @@ def bars_force(area: np.ndarray, yield_stress: np.ndarray, elasticity_module: np
     return force
 
 
-@timer
 def rotate_coordinates(
     coordinates: np.ndarray, angle_deg: float, pivot: np.ndarray | None = None, delta: np.ndarray | None = None
 ) -> np.ndarray:

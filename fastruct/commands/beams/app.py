@@ -97,8 +97,8 @@ def plot3d(id: int = typer.Argument(help="Beam ID")) -> None:
         original_coordinates = np.array(beam.get_coordinates())
         original_reinforced_bars = np.array(beam.get_reinforced_bars())
         original_bars_coordinates = original_reinforced_bars[:, :2]
-        n = 65  # Número de ángulos
-        angles = np.linspace(0, 360, n, endpoint=False)
+        n = 128  # Número de ángulos
+        angles = np.linspace(0, 180, n, endpoint=False)
         for angle in angles:
             coordinates = rotate_coordinates(original_coordinates, angle, pivot=None, delta=None)
 
@@ -113,6 +113,6 @@ def plot3d(id: int = typer.Argument(help="Beam ID")) -> None:
             mx = m * np.cos(angle_rad)
             my = m * np.sin(angle_rad)
 
-            mp_design_list.append([mx, my, p])
+            mp_design_list.append(np.array([mx, my, m, p]))
 
-        plot_curve3d(mp_design_list, original_coordinates, original_reinforced_bars)
+        plot_curve3d(mp_design_list, angles, original_coordinates, original_reinforced_bars)
