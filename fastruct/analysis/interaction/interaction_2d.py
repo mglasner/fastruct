@@ -38,8 +38,8 @@ def get_curve2d(coordinates: np.ndarray, reinforced_bars: np.ndarray) -> tuple[n
     mp_neg, reduction_factors_neg = curve2d(rotated_section, rotated_reinforced_bars, 2500, 0.003, is_neg=True)
 
     interpolated_factors_1 = interpolate_values(0.65, reduction_factors_pos[0], 10)
-    interpolated_factors_2 = interpolate_values(reduction_factors_pos[-1], 0.9, 20)
-    interpolated_factors_3 = interpolate_values(0.9, reduction_factors_neg[-1], 20)
+    interpolated_factors_2 = interpolate_values(reduction_factors_pos[-1], 0.9, 100)
+    interpolated_factors_3 = interpolate_values(0.9, reduction_factors_neg[-1], 100)
     interpolated_factors_4 = interpolate_values(reduction_factors_neg[0], 0.65, 10)
 
     reduction_factors_list: list[np.ndarray] = [
@@ -58,8 +58,8 @@ def get_curve2d(coordinates: np.ndarray, reinforced_bars: np.ndarray) -> tuple[n
     reduction_factors = reduction_factors[:, np.newaxis]
 
     interpolation1 = add_intermediate_points(mp_max, mp_pos[0], 10)
-    interpolation2 = add_intermediate_points(mp_pos[-1], mp_min, 20)
-    interpolation3 = add_intermediate_points(mp_min, mp_neg[-1], 20)
+    interpolation2 = add_intermediate_points(mp_pos[-1], mp_min, 100)
+    interpolation3 = add_intermediate_points(mp_min, mp_neg[-1], 100)
     interpolation4 = add_intermediate_points(mp_neg[0], mp_max, 10)
     mp = np.vstack(
         (mp_max, interpolation1, mp_pos, interpolation2, mp_min, interpolation3, mp_neg[::-1], interpolation4, mp_max)
@@ -86,7 +86,7 @@ def curve2d(
     reinforced_bars: np.ndarray,
     concrete_strength: float,
     max_strain: float,
-    num_points: int = 50,
+    num_points: int = 300,
     is_neg: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Computes the interaction curve for a given 2D polygon section with reinforcement.

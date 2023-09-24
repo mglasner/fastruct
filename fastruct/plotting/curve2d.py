@@ -1,4 +1,6 @@
 """Interactive M-P 2d curve."""
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Button
@@ -101,12 +103,79 @@ def plot_curve2d(curve_data: np.ndarray, section: np.ndarray, bars: np.ndarray) 
     plt.show()
 
 
+def sort_points_counter_clockwise(points: np.ndarray) -> np.ndarray:
+    """Sort points in counter-clockwise order."""
+    centroid = np.mean(points, axis=0)
+    angles = np.arctan2(points[:, 1] - centroid[1], points[:, 0] - centroid[0])
+    sort_order = np.argsort(angles)
+    return points[sort_order]
+
+
+def update_ax3(
+    event: Any,
+    mp_design_list: list[np.ndarray],
+    ax2: plt.Axes,
+    ax3: plt.Axes,
+    slice_values: np.ndarray,
+    slice_idx: list[int],
+    xlim: tuple[float, float],
+    ylim: tuple[float, float],
+) -> None:
+    """Callback function to update ax3 plot with new slices based on P value.
+
+    Parameters:
+        event: Event from the Matplotlib button.
+        mp_design_list: List of interaction curves data.
+        ax2: 3D Axes object for plotting.
+        ax3: 2D Axes object for plotting.
+        slice_values: Array of P values for slicing.
+        slice_idx: Mutable list for slice index.
+        xlim: X-axis limits for 2D plot.
+        ylim: Y-axis limits for 2D plot.
+    """
+    ax3.clear()
+    ax3.set_xlim(xlim)
+    ax3.set_ylim(ylim)
+
+    # Clear previous surfaces in the 3D plot
+    for collection in ax2.collections:
+        collection.remove()
+
+    slice_value = slice_values[slice_idx[0]]
+    points_to_plot = []
+
+    for mp_data in mp_design_list:
+        idx = np.where(np.isclose(mp_data[2], slice_value, atol=1))[0]
+        if len(idx) > 0:
+            points_to_plot.extend(list(zip(mp_data[0][idx], mp_data[1][idx], strict=True)))
+
+    if points_to_plot:
+        points_to_plot = np.array(points_to_plot)
+        sorted_points = sort_points_counter_clockwise(points_to_plot)
+        closed_points = np.vstack([sorted_points, sorted_points[0, :]])
+        ax3.plot(closed_points[:, 0], closed_points[:, 1], "b-")
+        ax3.fill(closed_points[:, 0], closed_points[:, 1], color="r", alpha=0.4)
+
+    # Add the surface to the 3D plot
+    x_range = np.linspace(xlim[0], xlim[1], 2)
+    y_range = np.linspace(ylim[0], ylim[1], 2)
+    x_surface, y_surface = np.meshgrid(x_range, y_range)
+    z_surface = np.full(x_surface.shape, slice_value)
+    ax2.plot_surface(x_surface, y_surface, z_surface, color="r", alpha=0.4)
+
+    ax3.set_title(f"Horizontal Slice at P = {slice_value:.1f}")  # Adding the value of P to the title
+    ax3.set_xlabel("Mx")
+    ax3.set_ylabel("My")
+    plt.draw()
+
+    slice_idx[0] = (slice_idx[0] + 1) % len(slice_values)
+
+
 def plot_curve3d(mp_design_list: list[np.ndarray], coordinates: np.ndarray, reinforced_bars: np.ndarray) -> None:
     """Plot the 3D interaction curves and original concrete section."""
     plt.close("all")
     fig = plt.figure(figsize=(15, 6))
     fig.suptitle("Interaction M-P 3D curve")
-
     fig.text(0.5, 0.01, "Press 'q' to close the figure.", ha="center", fontsize=10, color="grey")
 
     # Plot the concrete section
@@ -118,42 +187,30 @@ def plot_curve3d(mp_design_list: list[np.ndarray], coordinates: np.ndarray, rein
     for mp_data in mp_design_list:
         ax2.plot(mp_data[0], mp_data[1], mp_data[2], color="b", linewidth=1, alpha=0.25)
 
+    ax2.view_init(elev=5, azim=45)
     ax2.set_xlabel("Mx")
     ax2.set_ylabel("My")
     ax2.set_zlabel("P")
 
+    all_mx = np.concatenate([mp_data[0] for mp_data in mp_design_list])
+    all_my = np.concatenate([mp_data[1] for mp_data in mp_design_list])
+    xlim = (1.1 * np.min(all_mx), 1.1 * np.max(all_mx))
+    ylim = (1.1 * np.min(all_my), 1.1 * np.max(all_my))
+
     all_p = np.concatenate([mp_data[2] for mp_data in mp_design_list])
-    p_min = np.min(all_p)
-    p_max = np.max(all_p)
-    slice_values = np.linspace(p_min, p_max, 5)
-    slice_idx = [0]  # Use list to make it mutable for callback function
+    slice_values = np.linspace(np.min(all_p), 0.95 * np.max(all_p), 5)
+    slice_idx = [0]  # Mutable for callback
 
     ax3 = fig.add_subplot(133, aspect="equal")
-    update_ax3(None, mp_design_list, ax3, slice_values, slice_idx)
+    ax3.set_xlim(xlim)
+    ax3.set_ylim(ylim)
+    update_ax3(None, mp_design_list, ax2, ax3, slice_values, slice_idx, xlim, ylim)
 
-    # Create button and add callback
     ax_button = plt.axes([0.25, 0.02, 0.1, 0.05])
     button = Button(ax_button, "Next Slice")
-    button.on_clicked(lambda event: update_ax3(event, mp_design_list, ax3, slice_values, slice_idx))
+    button.on_clicked(lambda event: update_ax3(event, mp_design_list, ax2, ax3, slice_values, slice_idx, xlim, ylim))
 
     plt.show()
-
-
-def update_ax3(event, mp_design_list, ax3, slice_values, slice_idx):
-    """Callback function to update ax3 plot with new slices based on P value."""
-    ax3.clear()
-
-    slice_value = slice_values[slice_idx[0]]
-    for mp_data in mp_design_list:
-        idx = np.where(np.isclose(mp_data[2], slice_value, atol=2))[0]
-        if len(idx) > 0:
-            ax3.scatter(mp_data[0][idx], mp_data[1][idx], label=f"P = {slice_value:.2f}", color="b")
-
-    ax3.set_xlabel("Mx")
-    ax3.set_ylabel("My")
-    plt.draw()
-
-    slice_idx[0] = (slice_idx[0] + 1) % len(slice_values)
 
 
 def plot_concrete_section(ax, coordinates: np.ndarray, bars: np.ndarray, scaling_factor: int = 2000) -> None:

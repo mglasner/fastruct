@@ -97,7 +97,7 @@ def plot3d(id: int = typer.Argument(help="Beam ID")) -> None:
         original_coordinates = np.array(beam.get_coordinates())
         original_reinforced_bars = np.array(beam.get_reinforced_bars())
         original_bars_coordinates = original_reinforced_bars[:, :2]
-        n = 64  # Número de ángulos
+        n = 65  # Número de ángulos
         angles = np.linspace(0, 360, n, endpoint=False)
         for angle in angles:
             coordinates = rotate_coordinates(original_coordinates, angle, pivot=None, delta=None)
