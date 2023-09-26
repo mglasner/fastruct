@@ -1,10 +1,11 @@
 """Beams Commands."""
 from math import cos, pi, sin
+from multiprocessing import Manager, Pool, cpu_count
 
 import matplotlib.pyplot as plt
 import numpy as np
 import typer
-from rich.progress import track
+from rich.progress import Progress
 from shapely.geometry import Point, Polygon
 
 from fastruct.analysis.interaction.interaction_2d import get_curve2d, rotate_coordinates
@@ -49,7 +50,7 @@ def add_circular(
     name: str = typer.Option(None, help="Optional name for the beam"),
     description: str = typer.Option(None, help="Optional description for the beam"),
 ) -> None:
-    """Add rectangular cross sectional beam."""
+    """Add circular cross sectional beam."""
     if diameter <= 0:
         typer.secho("diameter must be positive", fg=typer.colors.RED)
         raise typer.Exit()
@@ -66,6 +67,49 @@ def add_circular(
     ]
     with session_scope() as session:
         active_project, beam = add_beam(session, length, name, description, coordinates)
+        typer.secho(f"Beam (id={beam.id}) created succesfuly ({active_project.code})", fg=typer.colors.GREEN)
+
+
+@app.command()
+def add_lt(
+    width1: float = typer.Argument(help="Width of the lower rectangle"),
+    height1: float = typer.Argument(help="Height of the lower rectangle"),
+    width2: float = typer.Argument(help="Width of the upper rectangle"),
+    height2: float = typer.Argument(help="Height of the upper rectangle"),
+    e1: float = typer.Option(0, help="Desplacement of the lower rectangle"),
+    e2: float = typer.Option(0, help="Desplacement of the upper rectangle"),
+    length: float = typer.Option(None, help="Length of the beam"),
+    name: str = typer.Option(None, help="Optional name for the beam"),
+    description: str = typer.Option(None, help="Optional description for the beam"),
+) -> None:
+    """Add L or T cross sectional beam."""
+    if width1 <= 0 or height1 <= 0 or width2 <= 0 or height2 <= 0:
+        typer.secho("width and height must be positive", fg=typer.colors.RED)
+        raise typer.Exit()
+
+    if length is not None and length <= 0:
+        typer.secho("length must be positive", fg=typer.colors.RED)
+        raise typer.Exit()
+
+    if e1 > e2:
+        e = e2
+    else:
+        e = e1
+
+    coordinates = [
+        (e1 - e, 0),
+        (e1 - e + width1, 0),
+        (e1 - e + width1, height1),
+        (e2 - e + width2, height1),
+        (e2 - e + width2, height1 + height2),
+        (e2 - e, height1 + height2),
+        (e2 - e, height1),
+        (e1 - e, height1),
+        (e1 - e, 0),
+    ]
+    unique_coordinates: list[tuple[float, float]] = list(dict.fromkeys(coordinates).keys())
+    with session_scope() as session:
+        active_project, beam = add_beam(session, length, name, description, unique_coordinates)
         typer.secho(f"Beam (id={beam.id}) created succesfuly ({active_project.code})", fg=typer.colors.GREEN)
 
 
@@ -111,35 +155,76 @@ def plot2d(id: int = typer.Argument(help="Beam ID")) -> None:
         plot_curve2d(mp_design, np.array(beam.get_coordinates()), np.array(beam.get_reinforced_bars()))
 
 
+def process_angle(
+    angle: float,
+    original_coordinates: np.ndarray,
+    original_reinforced_bars: np.ndarray,
+    mp_design_list: list,
+    progress_queue,
+) -> None:
+    """Process a single angle to calculate design parameters and store them in a shared list.
+
+    Args:
+        angle (float): The angle to process.
+        original_coordinates (np.ndarray): The original coordinates of the concrete section.
+        original_reinforced_bars (np.ndarray): The original coordinates and properties of the reinforced bars.
+        mp_design_list (list): A shared list to store the calculated design parameters.
+        progress_queue: A queue to track the progress of the task. A "1" is put into the queue when the task is
+                        complete.
+
+    Returns:
+        None: Results are stored in the shared list mp_design_list.
+    """
+    coordinates = rotate_coordinates(original_coordinates, angle, pivot=None, delta=None)
+    original_bars_coordinates = original_reinforced_bars[:, :2]
+    bar_coordinates = rotate_coordinates(original_bars_coordinates, angle, pivot=None, delta=None)
+    reinforced_bars = np.hstack((bar_coordinates, original_reinforced_bars[:, 2:]))
+
+    mp_nominal, reduction_factors = get_curve2d(coordinates, reinforced_bars)
+    mp_design = mp_nominal * reduction_factors
+    m, p = mp_design[:, 0], mp_design[:, 1]
+
+    angle_rad = np.radians(angle)
+    mx = m * np.cos(angle_rad)
+    my = m * np.sin(angle_rad)
+
+    mp_design_list.append(np.array([mx, my, m, p]))
+    progress_queue.put(1)
+
+
 @app.command()
-def plot3d(id: int = typer.Argument(help="Beam ID")) -> None:
+def plot3d(id: int = typer.Argument(..., help="Beam ID")) -> None:
     """Plot MP interaction 3d curve."""
     with session_scope() as session:
         active_project = session.query(Project).filter_by(is_active=True).first()
         beam = session.query(Beam).filter_by(id=id).filter_by(project_id=active_project.id).first()
         check_not_none(beam, "beam", str(id), active_project)
         plt.connect("key_press_event", close_event)
-        mp_design_list = []
+
+        manager = Manager()
+        mp_design_list = manager.list()
+        progress_queue = manager.Queue()
+
         original_coordinates = np.array(beam.get_coordinates())
         original_reinforced_bars = np.array(beam.get_reinforced_bars())
-        original_bars_coordinates = original_reinforced_bars[:, :2]
-        n = 64  # Número de ángulos
+        n = 128  # Number of angles
         angles = np.linspace(0, 180, n, endpoint=False)
-        for angle in track(angles, description="Processing 3D Curve..."):
-            coordinates = rotate_coordinates(original_coordinates, angle, pivot=None, delta=None)
 
-            bar_coordinates = rotate_coordinates(original_bars_coordinates, angle, pivot=None, delta=None)
-            reinforced_bars = np.hstack((bar_coordinates, original_reinforced_bars[:, 2:]))
+        with Progress() as progress:
+            task = progress.add_task("[cyan]Processing 3D Curve...", total=n)
+            with Pool(cpu_count()) as pool:
+                pool.starmap_async(
+                    process_angle,
+                    [
+                        (angle, original_coordinates, original_reinforced_bars, mp_design_list, progress_queue)
+                        for angle in angles
+                    ],
+                )
 
-            mp_nominal, reduction_factors = get_curve2d(coordinates, reinforced_bars)
-            mp_design = mp_nominal * reduction_factors
-            m, p = mp_design[:, 0], mp_design[:, 1]
-
-            angle_rad = np.radians(angle)
-            mx = m * np.cos(angle_rad)
-            my = m * np.sin(angle_rad)
-
-            mp_design_list.append(np.array([mx, my, m, p]))
+                completed = 0
+                while completed < n:
+                    completed += progress_queue.get()
+                    progress.update(task, completed=completed)
 
         typer.secho("Press 'q' to close plot.", fg=typer.colors.GREEN)
-        plot_curve3d(mp_design_list, angles, original_coordinates, original_reinforced_bars)
+        plot_curve3d(list(mp_design_list), angles, original_coordinates, original_reinforced_bars)
