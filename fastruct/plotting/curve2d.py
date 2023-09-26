@@ -84,7 +84,6 @@ def plot_curve2d(curve_data: np.ndarray, section: np.ndarray, bars: np.ndarray) 
     plt.figure(figsize=(15, 6))
 
     ax_section = plt.subplot(1, 2, 1, aspect="equal")
-    # Assuming plot_concrete_section is a function you already have
     plot_concrete_section(ax_section, section, bars)
 
     ax_curve = plt.subplot(1, 2, 2)
@@ -267,7 +266,7 @@ def plot_horizontal_slice(
     slice_idx[0] = (slice_idx[0] + 1) % len(slice_values)
 
 
-def plot_concrete_section(ax, coordinates: np.ndarray, bars: np.ndarray, scaling_factor: int = 2000) -> None:
+def plot_concrete_section(ax: plt.Axes, coordinates: np.ndarray, bars: np.ndarray, scaling_factor: int = 2000) -> None:
     """Utility function to plot the concrete section and reinforcement bars.
 
     Args:
@@ -310,6 +309,8 @@ def plot_concrete_section(ax, coordinates: np.ndarray, bars: np.ndarray, scaling
             label=f"$\\phi${int(dia * 1000)}",
         )
 
+    ax.set_xticks(coordinates[:, 0])
+    ax.set_yticks(coordinates[:, 1])
     ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
 
 
