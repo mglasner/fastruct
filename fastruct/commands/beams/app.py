@@ -91,11 +91,7 @@ def add_lt(
         typer.secho("length must be positive", fg=typer.colors.RED)
         raise typer.Exit()
 
-    if e1 > e2:
-        e = e2
-    else:
-        e = e1
-
+    e = min(e1, e2)
     coordinates = [
         (e1 - e, 0),
         (e1 - e + width1, 0),
