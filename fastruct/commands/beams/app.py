@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import typer
+from rich.progress import track
 from shapely.geometry import Point, Polygon
 
 from fastruct.analysis.interaction.interaction_2d import get_curve2d, rotate_coordinates
@@ -92,14 +93,13 @@ def plot3d(id: int = typer.Argument(help="Beam ID")) -> None:
         beam = session.query(Beam).filter_by(id=id).filter_by(project_id=active_project.id).first()
         check_not_none(beam, "beam", str(id), active_project)
         plt.connect("key_press_event", close_event)
-        typer.secho("Press 'q' to close plot.", fg=typer.colors.GREEN)
         mp_design_list = []
         original_coordinates = np.array(beam.get_coordinates())
         original_reinforced_bars = np.array(beam.get_reinforced_bars())
         original_bars_coordinates = original_reinforced_bars[:, :2]
         n = 128  # Número de ángulos
         angles = np.linspace(0, 180, n, endpoint=False)
-        for angle in angles:
+        for angle in track(angles, description="Processing 3D Curve..."):
             coordinates = rotate_coordinates(original_coordinates, angle, pivot=None, delta=None)
 
             bar_coordinates = rotate_coordinates(original_bars_coordinates, angle, pivot=None, delta=None)
@@ -115,4 +115,5 @@ def plot3d(id: int = typer.Argument(help="Beam ID")) -> None:
 
             mp_design_list.append(np.array([mx, my, m, p]))
 
+        typer.secho("Press 'q' to close plot.", fg=typer.colors.GREEN)
         plot_curve3d(mp_design_list, angles, original_coordinates, original_reinforced_bars)

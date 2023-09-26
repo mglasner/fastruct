@@ -96,7 +96,8 @@ def curve2d(
         is_neg (bool, optional): Whether the calculated moments should be negated.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: Arrays containing the nominal moments and axial forces, and the reduction factors.
+        tuple[np.ndarray, np.ndarray]: Arrays containing the nominal moments and axial forces,
+                                       and the reduction factors.
     """
     centroid_y = section.centroid.y
     ymax, ymin = section.bounds[3], section.bounds[1]
@@ -263,12 +264,13 @@ def factor_reduction(min_strain: float, fy: float, e: float) -> float:
     Returns:
         float: The reduction factor.
     """
+    limit_strain = 0.005
     ey = fy / e
 
-    if min_strain >= 0.005:
+    if min_strain >= limit_strain:
         return 0.9
 
-    elif 0.005 > min_strain > ey:
-        return 0.25 * (min_strain - 0.005) / (0.005 - ey) + 0.9
+    elif limit_strain > min_strain > ey:
+        return 0.25 * (min_strain - limit_strain) / (limit_strain - ey) + 0.9
 
     return 0.65

@@ -16,9 +16,9 @@ class Project(BaseModel):
     description: so.Mapped[str | None] = so.mapped_column(sa.String(128))
     is_active: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
 
-    foundations: so.Mapped[list["Foundation"]] = so.relationship(
+    foundations: so.Mapped[list["Foundation"]] = so.relationship(  # noqa: F821
         cascade="all, delete", back_populates="project"
-    )  # noqa: F821
+    )
 
     beams: so.Mapped[list["Beam"]] = so.relationship(cascade="all, delete", back_populates="project")  # noqa: F821
 

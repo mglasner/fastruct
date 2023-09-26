@@ -26,13 +26,13 @@ def test_create_beam(session: Session, beam1: Beam):
 
 
 @pytest.mark.parametrize(
-    "coordinates, expected_area", 
+    "coordinates, expected_area",
     [
         ([(-0.5, -1), (0.5, -1), (0.5, 1), (-0.5, 1)], 2),  # rectangle 1x2
         ([(-1, -0.5), (1, -0.5), (1, 0.5), (-1, 0.5)], 2),  # rectangle 2x1
         ([(-0.1, -0.4), (0.1, -0.4), (0.1, 0.4), (-0.1, 0.4)], 0.16),  # rectangle 0.2x0.8
     ],
-) 
+)
 def test_beam_area(coordinates: list[list[float]], expected_area: float) -> None:
     """Test beam area calculation.
 

@@ -183,7 +183,8 @@ def test_ground_weight(
 ) -> None:
     """Test ground weight calculation.
 
-    This test verifies that the weight calculation is accurate for various test cases, including different column dimensions.
+    This test verifies that the weight calculation is accurate for various test cases,
+    including different column dimensions.
 
     Args:
         lx: Length along the X dimension of the foundation.

@@ -78,7 +78,9 @@ def generate_rows(
 
     all_rows = []
     for i, (seal_load, stress, percentaje) in enumerate(zip(seal_loads, stresses, percentajes, strict=True), start=1):
-        row = prepare_row(i, seal_load, stress, percentaje, method, max_stress, limit, show_loads, color)  # type: ignore
+        row = prepare_row(
+            i, seal_load, stress, percentaje, method, max_stress, limit, show_loads, color  # type: ignore
+        )
         all_rows.append(row)
 
     return all_rows

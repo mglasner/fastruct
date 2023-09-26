@@ -65,12 +65,11 @@ def ultimate_moments_by_side(
         else:
             sigma_min_on_pivot = sigma_max * length_right / length
 
+    elif sigma_min == 0:
+        compressed_legth = compressed_width_for_triangular_distribution(length, load_excentricity)
+        sigma_min_on_pivot = sigma_max * length_left / compressed_legth
     else:
-        if sigma_min == 0:
-            compressed_legth = compressed_width_for_triangular_distribution(length, load_excentricity)
-            sigma_min_on_pivot = sigma_max * length_left / compressed_legth
-        else:
-            sigma_min_on_pivot = sigma_max * length_left / length
+        sigma_min_on_pivot = sigma_max * length_left / length
 
     return (
         ultimate_moment(sigma_max, sigma_min_on_pivot, width, length_left),

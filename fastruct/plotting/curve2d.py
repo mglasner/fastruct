@@ -81,7 +81,7 @@ def annotate_2d_curve(ax: plt.Axes, curve_data: np.ndarray) -> None:
 def plot_curve2d(curve_data: np.ndarray, section: np.ndarray, bars: np.ndarray) -> None:
     """Plot the standalone 2D curve along with the original concrete section."""
     plt.close("all")
-    fig = plt.figure(figsize=(15, 6))
+    plt.figure(figsize=(15, 6))
 
     ax_section = plt.subplot(1, 2, 1, aspect="equal")
     # Assuming plot_concrete_section is a function you already have
