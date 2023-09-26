@@ -1,4 +1,6 @@
 """Beams Commands."""
+from math import cos, pi, sin
+
 import matplotlib.pyplot as plt
 import numpy as np
 import typer
@@ -6,6 +8,7 @@ from rich.progress import track
 from shapely.geometry import Point, Polygon
 
 from fastruct.analysis.interaction.interaction_2d import get_curve2d, rotate_coordinates
+from fastruct.commands.beams.utils import add_beam
 from fastruct.common.functions import check_not_none
 from fastruct.config_db import session_scope
 from fastruct.models.beam import Beam
@@ -21,8 +24,8 @@ def add_rectangular(
     width: float = typer.Argument(help="Width of the rectangular beam"),
     height: float = typer.Argument(help="Height of the rectangular beam"),
     length: float = typer.Option(None, help="Length of the beam"),
-    name: str = typer.Option(None, help="Optional name for the foundation"),
-    description: str = typer.Option(None, help="Optional description for the foundation"),
+    name: str = typer.Option(None, help="Optional name for the beam"),
+    description: str = typer.Option(None, help="Optional description for the beam"),
 ) -> None:
     """Add rectangular cross sectional beam."""
     if width <= 0 or height <= 0:
@@ -33,13 +36,36 @@ def add_rectangular(
         typer.secho("length must be positive", fg=typer.colors.RED)
         raise typer.Exit()
 
-    coordinates = [[0, 0], [width, 0], [width, height], [0, height], [0, 0]]
+    coordinates = [(0, 0), (width, 0), (width, height), (0, height), (0, 0)]
     with session_scope() as session:
-        active_project = session.query(Project).filter_by(is_active=True).first()
-        beam = Beam(name=name, description=description, length=length, project_id=active_project.id)
-        beam.set_coordinates(coordinates)
-        session.add(beam)
-        session.flush()
+        active_project, beam = add_beam(session, length, name, description, coordinates)
+        typer.secho(f"Beam (id={beam.id}) created succesfuly ({active_project.code})", fg=typer.colors.GREEN)
+
+
+@app.command()
+def add_circular(
+    diameter: float = typer.Argument(help="Diameter of the circular beam"),
+    length: float = typer.Option(None, help="Length of the beam"),
+    name: str = typer.Option(None, help="Optional name for the beam"),
+    description: str = typer.Option(None, help="Optional description for the beam"),
+) -> None:
+    """Add rectangular cross sectional beam."""
+    if diameter <= 0:
+        typer.secho("diameter must be positive", fg=typer.colors.RED)
+        raise typer.Exit()
+
+    if length is not None and length <= 0:
+        typer.secho("length must be positive", fg=typer.colors.RED)
+        raise typer.Exit()
+
+    points = 16
+    radius = diameter / 2
+    coordinates = [
+        (radius + (radius * cos(2 * pi * i / points)), radius + (radius * sin(2 * pi * i / points)))
+        for i in range(points)
+    ]
+    with session_scope() as session:
+        active_project, beam = add_beam(session, length, name, description, coordinates)
         typer.secho(f"Beam (id={beam.id}) created succesfuly ({active_project.code})", fg=typer.colors.GREEN)
 
 

@@ -4,6 +4,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import FuncFormatter
 from matplotlib.widgets import Button
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.mplot3d.art3d import Line3D
@@ -312,6 +313,13 @@ def plot_concrete_section(ax: plt.Axes, coordinates: np.ndarray, bars: np.ndarra
     ax.set_xticks(coordinates[:, 0])
     ax.set_yticks(coordinates[:, 1])
     ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
+
+    def format_ticks(val, pos) -> str:
+        return f"{val:.2f}"
+
+    formatter = FuncFormatter(format_ticks)
+    ax.xaxis.set_major_formatter(formatter)
+    ax.yaxis.set_major_formatter(formatter)
 
 
 def set_3d_aspect_equal(ax: plt.Axes):
