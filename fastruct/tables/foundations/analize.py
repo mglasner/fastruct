@@ -18,16 +18,16 @@ MIN_PERCENTAJE_COLOR = "blue"
 
 def analize_table(
     foundation: Foundation,
-    limit,
+    limit: float | None,
     method: Literal["bi-directional", "one-direction", "compare"],
     order: str,
-    color,
-    show_loads,
+    color: bool,
+    show_loads: bool,
     stresses: list[float | None]
     | list[tuple[float | None, float | None]]
     | list[tuple[float | None, float | None, float | None]],
     percentajes: list[float] | list[tuple[float, float]] | list[tuple[float, float, float]],
-    max_stress,
+    max_stress: float,
 ) -> tuple[Table, list[Any]]:
     """Table configuration."""
     table = table_header(foundation, method, show_loads)
@@ -48,16 +48,16 @@ def analize_table(
 
 def generate_rows(
     foundation: Foundation,
-    limit,
-    method,
+    limit: float | None,
+    method: Literal["bi-directional", "one-direction", "compare"],
     order: str,
-    color,
-    show_loads,
+    color: bool,
+    show_loads: bool,
     stresses: list[float | None]
     | list[tuple[float | None, float | None]]
     | list[tuple[float | None, float | None, float | None]],
     percentajes: list[float] | list[tuple[float, float]] | list[tuple[float, float, float]],
-    max_stress,
+    max_stress: float,
 ) -> list[Any]:
     """Add data to table."""
     seal_loads = foundation.seal_loads
@@ -79,7 +79,15 @@ def generate_rows(
     all_rows = []
     for i, (seal_load, stress, percentaje) in enumerate(zip(seal_loads, stresses, percentajes, strict=True), start=1):
         row = prepare_row(
-            i, seal_load, stress, percentaje, method, max_stress, limit, show_loads, color  # type: ignore
+            i,
+            seal_load,
+            stress,
+            percentaje,
+            method,
+            max_stress,
+            limit,
+            show_loads,
+            color,  # type: ignore
         )
         all_rows.append(row)
 
@@ -188,7 +196,7 @@ def format_rows(
 
 def prepare_row(
     i: int,
-    load,
+    load: float,
     stress: float,
     percentaje: float,
     method: Literal["bi-directional", "one-direction", "compare"],
